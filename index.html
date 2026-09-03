@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WhatMovie - Trouve quoi regarder ce soir</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Fond dynamique flouté -->
+  <div id="dynamic-bg" class="dynamic-bg"></div>
+
+  <!-- Toast notifications -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <header>
+    <div class="header-top">
+      <h1>WhatMovie</h1>
+      <button id="theme-toggle" class="btn-icon">Mode Clair</button>
+    </div>
+    <p>Trouve quoi regarder ce soir</p>
+  </header>
+
+  <div class="search-bar-container">
+    <input type="text" id="search-input" placeholder="Rechercher un film précis...">
+    <button id="search-btn" class="btn-action">Rechercher</button>
+  </div>
+
+  <div class="controls">
+    <select id="genre-select">
+      <option value="">Tous les genres</option>
+    </select>
+
+    <select id="era-select">
+      <option value="">Toutes les époques</option>
+      <option value="2020-2026">Années 2020+</option>
+      <option value="2010-2019">Années 2010</option>
+      <option value="2000-2009">Années 2000</option>
+      <option value="1990-1999">Années 90</option>
+      <option value="1980-1989">Années 80</option>
+      <option value="1970-1979">Anciens (&lt; 1980)</option>
+    </select>
+
+    <!-- Nouveau filtre Durée -->
+    <select id="duration-select">
+      <option value="">Toutes les durées</option>
+      <option value="short">Court (&lt; 1h30)</option>
+      <option value="medium">Standard (1h30 - 2h)</option>
+      <option value="long">Long (&gt; 2h)</option>
+    </select>
+
+    <select id="provider-select">
+      <option value="">Toutes les plateformes</option>
+      <option value="8">Netflix</option>
+      <option value="119">Prime Video</option>
+      <option value="337">Disney+</option>
+      <option value="381">Canal+</option>
+      <option value="2">Apple TV</option>
+    </select>
+
+    <button id="propose-btn" class="btn-glow">Proposer un film</button>
+  </div>
+
+  <!-- Carte Film -->
+  <div class="movie-card-wrapper">
+    <div id="spinner" class="spinner" style="display: none;"></div>
+    
+    <div id="movie-card" class="movie-card glass-card">
+      <div class="poster-container" id="poster-container">
+        <img id="movie-poster" src="" alt="Affiche du film">
+      </div>
+      
+      <div class="details-container">
+        <div class="title-row">
+          <h2 id="movie-title">Titre du film</h2>
+          <button id="fav-btn" class="btn-fav">Ajouter aux favoris</button>
+        </div>
+
+        <div class="tags" id="movie-genres"></div>
+
+        <div class="providers-section">
+          <span>Disponible sur :</span>
+          <div id="movie-providers" class="logos-container"></div>
+        </div>
+
+        <p id="movie-synopsis" class="synopsis">Synopsis du film...</p>
+
+        <!-- Section Réalisateur & Casting -->
+        <div class="credits-section">
+          <p id="movie-director" class="director-info"></p>
+          <div id="movie-cast" class="cast-container"></div>
+        </div>
+
+        <div class="actions-section">
+          <button id="trailer-btn" class="btn-action">Bande-annonce</button>
+          <button id="share-btn" class="btn-action">Partager</button>
+        </div>
+
+        <div class="rating-section">
+          <div>Note TMDB : <span id="movie-rating" class="stars">0 / 10</span></div>
+          <button id="next-btn" class="btn-glow">Déjà vu (suivant)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section Favoris épurée -->
+  <section class="favorites-section">
+    <div class="favorites-header">
+      <h3 id="fav-count-title">Mes Favoris (0)</h3>
+    </div>
+    <div id="favorites-grid" class="favorites-grid"></div>
+  </section>
+
+  <!-- Modale Image / Lecteur Bande-Annonce -->
+  <div id="modal" class="modal">
+    <div class="modal-wrapper">
+      <span id="modal-close" class="modal-close">&times;</span>
+      <div id="modal-content-container"></div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
