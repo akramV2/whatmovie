@@ -1,4 +1,4 @@
-const API_KEY = '61cce23d544a028a9ee01690d3455337'; // Remplace par ta clé d'API TMDB
+const API_KEY = '61cce23d544a028a9ee01690d3455337'; // Remplace par ta clé API TMDB
 const BASE_URL = 'https://api.themoviedb.org/3';
 const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
 
@@ -40,7 +40,7 @@ const shareBtn = document.getElementById('share-btn');
 // État de l'application
 let currentMovie = null;
 let favorites = JSON.parse(localStorage.getItem('whatmovie_favs')) || [];
-let seenMovies = new Set(); // Historique de session
+let seenMovies = new Set();
 
 // Initialisation
 document.addEventListener('DOMContentLoaded', () => {
@@ -80,7 +80,7 @@ async function fetchGenres() {
   }
 }
 
-// Charger un film avec filtres (y compris durée)
+// Charger un film avec filtres
 async function loadRandomMovie() {
   spinner.style.display = 'block';
   
@@ -102,7 +102,6 @@ async function loadRandomMovie() {
       }
     }
 
-    // Application du filtre de durée
     if (duration === 'short') {
       url += `&with_runtime.lte=90`;
     } else if (duration === 'medium') {
@@ -152,7 +151,7 @@ async function searchMovie(query) {
   }
 }
 
-// Récupération des détails (providers, credits, vidéos YouTube)
+// Récupération des détails
 async function fetchMovieDetails(movieId) {
   const [detailsRes, creditsRes, providersRes, videosRes] = await Promise.all([
     fetch(`${BASE_URL}/movie/${movieId}?api_key=${API_KEY}&language=fr-FR`),
@@ -174,14 +173,13 @@ async function fetchMovieDetails(movieId) {
 function displayMovie(m) {
   movieCard.classList.remove('swipe-out');
   movieCard.classList.remove('fade-in');
-  void movieCard.offsetWidth; // Re-trigger d'animation fluide
+  void movieCard.offsetWidth;
   movieCard.classList.add('fade-in');
 
   movieTitle.textContent = m.title;
   movieSynopsis.textContent = m.overview || "Aucun synopsis disponible.";
   movieRating.textContent = `${m.vote_average ? m.vote_average.toFixed(1) : 'N/A'} / 10`;
 
-  // Affiche & Arrière-plan
   if (m.poster_path) {
     posterImg.src = `${IMAGE_BASE_URL}${m.poster_path}`;
     dynamicBg.style.backgroundImage = `url(${IMAGE_BASE_URL}${m.poster_path})`;
@@ -190,7 +188,6 @@ function displayMovie(m) {
     posterImg.src = 'https://via.placeholder.com/300x450?text=Pas+d%27image';
   }
 
-  // Genres & Durée
   movieGenres.innerHTML = '';
   m.genres.forEach(g => {
     const span = document.createElement('span');
@@ -202,15 +199,13 @@ function displayMovie(m) {
   if (m.runtime) {
     const spanRuntime = document.createElement('span');
     spanRuntime.className = 'tag';
-    spanRuntime.textContent = `⏱️ ${m.runtime} min`;
+    spanRuntime.textContent = `${m.runtime} min`;
     movieGenres.appendChild(spanRuntime);
   }
 
-  // Réalisateur
   const director = m.credits?.crew?.find(c => c.job === 'Director');
   movieDirector.textContent = director ? `Réalisé par : ${director.name}` : '';
 
-  // Casting (Mini-bulles)
   movieCast.innerHTML = '';
   if (m.credits?.cast) {
     m.credits.cast.slice(0, 4).forEach(actor => {
@@ -225,7 +220,6 @@ function displayMovie(m) {
     });
   }
 
-  // Plateformes
   movieProviders.innerHTML = '';
   const flatrate = m.providers?.flatrate;
   if (flatrate && flatrate.length > 0) {
@@ -244,12 +238,11 @@ function displayMovie(m) {
   updateFavButtonState();
 }
 
-// Swipe animation
 function triggerSwipeNext() {
   movieCard.classList.add('swipe-out');
   setTimeout(() => {
     loadRandomMovie();
-  }, 320);
+  }, 300);
 }
 
 // Gestion des favoris
@@ -265,7 +258,7 @@ function toggleFavorite() {
       title: currentMovie.title,
       poster_path: currentMovie.poster_path
     });
-    showToast("Ajouté aux favoris ! ❤️");
+    showToast("Ajouté aux favoris.");
   }
   localStorage.setItem('whatmovie_favs', JSON.stringify(favorites));
   updateFavButtonState();
@@ -275,7 +268,7 @@ function toggleFavorite() {
 function updateFavButtonState() {
   if (!currentMovie) return;
   const isFav = favorites.some(f => f.id === currentMovie.id);
-  favBtn.textContent = isFav ? '❤️ Enregistré' : 'Ajouter aux favoris';
+  favBtn.textContent = isFav ? 'Dans vos favoris' : 'Ajouter aux favoris';
 }
 
 function renderFavorites() {
@@ -310,7 +303,7 @@ function renderFavorites() {
   });
 }
 
-// Modal Lecteur YouTube Bande-Annonce
+// Modal YouTube Trailer
 trailerBtn.addEventListener('click', () => {
   if (!currentMovie || !currentMovie.videos) return;
   const trailer = currentMovie.videos.find(v => v.type === 'Trailer' && v.site === 'YouTube') || currentMovie.videos[0];
@@ -333,7 +326,7 @@ shareBtn.addEventListener('click', () => {
     });
   } else {
     navigator.clipboard.writeText(window.location.href);
-    showToast("Lien copié dans le presse-papier !");
+    showToast("Lien copié dans le presse-papier.");
   }
 });
 
