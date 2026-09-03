@@ -23,7 +23,10 @@
   </header>
 
   <div class="search-bar-container">
-    <input type="text" id="search-input" placeholder="Rechercher un film précis...">
+    <div class="search-input-wrapper">
+      <input type="text" id="search-input" placeholder="Rechercher un film précis..." autocomplete="off">
+      <div id="search-results-dropdown" class="search-dropdown"></div>
+    </div>
     <button id="search-btn" class="btn-action">Rechercher</button>
   </div>
 
