@@ -130,26 +130,87 @@ async function loadRandomMovie() {
   }
 }
 
-// Recherche directe
-async function searchMovie(query) {
-  if (!query) return;
-  spinner.style.display = 'block';
+// Éléments supplémentaires du DOM pour la recherche
+const searchDropdown = document.getElementById('search-results-dropdown');
+let searchDebounceTimer = null;
+
+// Écouteur de la saisie utilisateur (Debounce de 400ms)
+searchInput.addEventListener('input', (e) => {
+  const query = e.target.value.trim();
+  clearTimeout(searchDebounceTimer);
+
+  if (query.length < 2) {
+    searchDropdown.classList.remove('active');
+    searchDropdown.innerHTML = '';
+    return;
+  }
+
+  searchDebounceTimer = setTimeout(() => {
+    fetchSearchSuggestions(query);
+  }, 400);
+});
+
+// Requête API pour les suggestions
+async function fetchSearchSuggestions(query) {
   try {
-    const res = await fetch(`${BASE_URL}/search/movie?api_key=${API_KEY}&language=fr-FR&query=${encodeURIComponent(query)}`);
+    const res = await fetch(`${BASE_URL}/search/movie?api_key=${API_KEY}&language=fr-FR&query=${encodeURIComponent(query)}&page=1`);
     const data = await res.json();
+
+    searchDropdown.innerHTML = '';
+
     if (data.results && data.results.length > 0) {
-      const movie = data.results[0];
-      seenMovies.add(movie.id);
-      await fetchMovieDetails(movie.id);
+      data.results.slice(0, 6).forEach(movie => {
+        const item = document.createElement('div');
+        item.className = 'search-item';
+        
+        const poster = movie.poster_path 
+          ? `${IMAGE_BASE_URL}${movie.poster_path}` 
+          : 'https://via.placeholder.com/36x52?text=?';
+          
+        const releaseYear = movie.release_date ? movie.release_date.split('-')[0] : 'N/A';
+
+        item.innerHTML = `
+          <img src="${poster}" alt="${movie.title}">
+          <div class="search-item-info">
+            <span class="search-item-title">${movie.title}</span>
+            <span class="search-item-date">${releaseYear}</span>
+          </div>
+        `;
+
+        item.addEventListener('click', () => {
+          seenMovies.add(movie.id);
+          fetchMovieDetails(movie.id);
+          searchDropdown.classList.remove('active');
+          searchInput.value = '';
+        });
+
+        searchDropdown.appendChild(item);
+      });
+      searchDropdown.classList.add('active');
     } else {
-      showToast("Aucun film correspondant trouvé.");
+      searchDropdown.innerHTML = '<div class="search-no-result">Aucun film trouvé</div>';
+      searchDropdown.classList.add('active');
     }
   } catch (err) {
-    showToast("Erreur de recherche.");
-  } finally {
-    spinner.style.display = 'none';
+    console.error('Erreur recherche dynamique:', err);
   }
 }
+
+// Recherche directe au clic sur le bouton
+searchBtn.addEventListener('click', () => {
+  const query = searchInput.value.trim();
+  if (query) {
+    searchMovie(query);
+    searchDropdown.classList.remove('active');
+  }
+});
+
+// Fermer le menu déroulant si on clique ailleurs sur la page
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.search-input-wrapper')) {
+    searchDropdown.classList.remove('active');
+  }
+});
 
 // Récupération des détails
 async function fetchMovieDetails(movieId) {
