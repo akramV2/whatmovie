@@ -4,20 +4,20 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#121212">
+  <meta name="theme-color" content="#121212">
 
   <!-- Open Graph -->
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://akramv2.github.io/whatmovie/">
-    <meta property="og:title" content="WhatMovie - Trouve quoi regarder ce soir">
-    <meta property="og:description" content="Application fluide pour découvrir des films sur vos plateformes de streaming.">
-    <meta property="og:image" content="https://akramv2.github.io/whatmovie/og-image.png">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://akramv2.github.io/whatmovie/">
+  <meta property="og:title" content="WhatMovie - Trouve quoi regarder ce soir">
+  <meta property="og:description" content="Application fluide pour découvrir des films sur vos plateformes de streaming.">
+  <meta property="og:image" content="https://akramv2.github.io/whatmovie/og-image.png">
 
-    <!-- Twitter -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="WhatMovie - Trouve quoi regarder ce soir">
-    <meta name="twitter:description" content="Application fluide pour découvrir des films sur vos plateformes de streaming.">
-    <meta name="twitter:image" content="https://akramv2.github.io/whatmovie/og-image.png">
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="WhatMovie - Trouve quoi regarder ce soir">
+  <meta name="twitter:description" content="Application fluide pour découvrir des films sur vos plateformes de streaming.">
+  <meta name="twitter:image" content="https://akramv2.github.io/whatmovie/og-image.png">
   <title>WhatMovie - Trouve quoi regarder ce soir</title>
   
   <link rel="icon" type="image/png" href="icon.png">
@@ -147,6 +147,10 @@
     </div>
   </div>
 
+  <!-- Charger le fichier JavaScript -->
+  <script src="script.js"></script>
+
+  <!-- Enregistrement Service Worker -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
