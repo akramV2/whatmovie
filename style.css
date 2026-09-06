@@ -590,7 +590,7 @@ button {
 /* QUIZ */
 .quiz-card {
   background: var(--card-bg);
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(12px);
   border: 1px solid var(--border-color);
   border-radius: 20px;
   padding: 24px;
@@ -622,7 +622,7 @@ button {
   height: 290px;
   object-fit: cover;
   border-radius: 12px;
-  filter: blur(20px);
+  filter: blur(12px);
   transition: filter 0.5s ease;
   margin: 20px auto;
   display: block;
