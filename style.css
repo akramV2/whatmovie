@@ -1,3 +1,81 @@
+:root {
+  --bg-color: #0f1015;
+  --card-bg: rgba(22, 24, 34, 0.75);
+  --border-color: rgba(255, 255, 255, 0.1);
+  --text-color: #f3f4f6;
+  --text-secondary: #9ca3af;
+  --accent-color: #3b82f6;
+  --accent-hover: #2563eb;
+  --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="light"] {
+  --bg-color: #f3f4f6;
+  --card-bg: rgba(255, 255, 255, 0.85);
+  --border-color: rgba(0, 0, 0, 0.1);
+  --text-color: #1f2937;
+  --text-secondary: #4b5563;
+  --accent-color: #2563eb;
+  --accent-hover: #1d4ed8;
+  --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.dynamic-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-size: cover;
+  background-position: center;
+  filter: blur(80px) brightness(0.4);
+  z-index: -1;
+  transition: background-image 0.8s ease-in-out;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 20px;
+  width: 100%;
+  max-width: 800px;
+}
+
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+header p {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
 
 /* Navigation stylisée */
 .nav-bar {
@@ -47,16 +125,16 @@
 }
 
 .nav-btn.active {
-  color: var(--accent-color, #ffffff);
+  color: var(--accent-color);
   font-weight: 600;
 }
 
 .nav-btn.active svg {
   transform: translateY(-2px);
-  fill: var(--accent-color, #ffffff);
+  fill: var(--accent-color);
 }
 
-/* Gestion des vues */
+/* Vues et Conteneurs */
 .content-container {
   width: 100%;
   max-width: 800px;
@@ -71,8 +149,234 @@
   animation: fadeIn 0.3s ease;
 }
 
-.section-title {
-  font-size: 1.4rem;
-  margin-bottom: 20px;
+/* Recherche & Filtres */
+.search-bar-container {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.search-input-wrapper {
+  position: relative;
+  flex: 1;
+}
+
+input[type="text"], select {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
   color: var(--text-color);
+  font-size: 0.9rem;
+  backdrop-filter: blur(10px);
+}
+
+.search-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: var(--card-bg);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: var(--shadow-soft);
+  max-height: 320px;
+  overflow-y: auto;
+  z-index: 100;
+  display: none;
+}
+
+.search-dropdown.active {
+  display: block;
+}
+
+.search-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.search-item:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.search-item img {
+  width: 36px;
+  height: 52px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+/* Boutons */
+button {
+  cursor: pointer;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  padding: 10px 16px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background: var(--accent-color);
+  color: #ffffff;
+  border: none;
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+}
+
+.btn-action {
+  background: var(--card-bg);
+  color: var(--text-color);
+}
+
+.btn-icon {
+  background: var(--card-bg);
+  color: var(--text-color);
+  padding: 6px 12px;
+  font-size: 0.8rem;
+}
+
+.btn-fav {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+}
+
+/* Carte Film */
+.movie-card-wrapper {
+  position: relative;
+  min-height: 400px;
+}
+
+.glass-card {
+  background: var(--card-bg);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: var(--shadow-soft);
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 650px) {
+  .glass-card {
+    grid-template-columns: 1fr;
+  }
+}
+
+.poster-container img {
+  width: 100%;
+  border-radius: 8px;
+  object-fit: cover;
+  box-shadow: var(--shadow-soft);
+}
+
+.details-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.synopsis {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tag {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+}
+
+.providers-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+}
+
+.logos-container img {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  margin-right: 6px;
+}
+
+.actions-section, .rating-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: auto;
+}
+
+/* Favoris & Grilles */
+.favorites-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 15px;
+  margin-top: 15px;
+}
+
+.fav-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 8px;
+  text-align: center;
+  cursor: pointer;
+  position: relative;
+}
+
+.fav-card img {
+  width: 100%;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.fav-card p {
+  font-size: 0.8rem;
+  margin-top: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
