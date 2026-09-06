@@ -5,6 +5,7 @@ const ASSETS = [
   './style.css',
   './script.js',
   './manifest.json'
+  './icon.png'
 ];
 
 // Installation du Service Worker et mise en cache des fichiers
