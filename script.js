@@ -432,3 +432,55 @@ function closeModal() {
 modalClose.addEventListener('click', closeModal);
 window.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+
+// Navigation par Onglets
+const navButtons = document.querySelectorAll('.nav-btn');
+const tabContents = document.querySelectorAll('.tab-content');
+
+navButtons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const targetId = btn.getAttribute('data-target');
+
+    navButtons.forEach(b => b.classList.remove('active'));
+    tabContents.forEach(c => c.classList.remove('active'));
+
+    btn.classList.add('active');
+    document.getElementById(targetId).classList.add('active');
+
+    if (targetId === 'tab-trending') {
+      loadTrendingMovies();
+    }
+  });
+});
+
+// Chargement des tendances
+async function loadTrendingMovies() {
+  const trendingGrid = document.getElementById('trending-grid');
+  trendingGrid.innerHTML = '<div class="spinner" style="position:relative; left:0; transform:none;"></div>';
+
+  try {
+    const res = await fetch(`${BASE_URL}/trending/movie/week?api_key=${API_KEY}&language=fr-FR`);
+    const data = await res.json();
+
+    trendingGrid.innerHTML = '';
+    if (data.results) {
+      data.results.forEach(m => {
+        const card = document.createElement('div');
+        card.className = 'fav-card';
+        card.innerHTML = `
+          <img src="${m.poster_path ? IMAGE_BASE_URL + m.poster_path : 'https://via.placeholder.com/150'}" alt="${m.title}" loading="lazy">
+          <p>${m.title}</p>
+        `;
+        card.addEventListener('click', () => {
+          seenMovies.add(m.id);
+          fetchMovieDetails(m.id);
+          // Revenir sur l'onglet Découvrir pour voir le film
+          document.querySelector('[data-target="tab-discover"]').click();
+        });
+        trendingGrid.appendChild(card);
+      });
+    }
+  } catch (err) {
+    trendingGrid.innerHTML = '<p style="color: var(--text-secondary);">Impossible de charger les tendances.</p>';
+  }
+}
