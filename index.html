@@ -9,29 +9,31 @@
 </head>
 <body>
   <div class="dynamic-bg" id="dynamic-bg"></div>
+  <div id="spinner" class="spinner" style="display: none;"></div>
 
   <header>
     <div class="header-top">
       <h1>WhatMovie</h1>
-      <button class="btn-icon" id="theme-toggle" onclick="toggleTheme()">Mode Clair</button>
+      <button class="btn-icon" id="theme-toggle">Mode Clair</button>
     </div>
     <p>Trouve quoi regarder ce soir</p>
   </header>
 
+  <!-- Navigation par Onglets -->
   <nav class="nav-bar">
-    <button class="nav-btn active" id="btn-tab-discover" onclick="switchTab('discover')">
+    <button class="nav-btn active" data-target="tab-discover">
       <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
       <span>Découvrir</span>
     </button>
-    <button class="nav-btn" id="btn-tab-trends" onclick="switchTab('trends')">
+    <button class="nav-btn" data-target="tab-trending">
       <svg viewBox="0 0 24 24"><path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/></svg>
       <span>Tendances</span>
     </button>
-    <button class="nav-btn" id="btn-tab-favorites" onclick="switchTab('favorites')">
+    <button class="nav-btn" data-target="tab-favorites">
       <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
       <span>Favoris</span>
     </button>
-    <button class="nav-btn" id="btn-tab-history" onclick="switchTab('history')">
+    <button class="nav-btn" data-target="tab-history">
       <svg viewBox="0 0 24 24"><path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6a7 7 0 1 1 7 7 7.07 7.07 0 0 1-6-3.39l-1.42 1.42A9 9 0 1 0 13 3zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8z"/></svg>
       <span>Historique</span>
     </button>
@@ -42,55 +44,63 @@
     <div id="tab-discover" class="tab-content active">
       <div class="search-bar-container">
         <div class="search-input-wrapper">
-          <input type="text" id="search-input" placeholder="Rechercher un film précis..." oninput="handleSearchInput(this.value)">
-          <div id="search-dropdown" class="search-dropdown"></div>
+          <input type="text" id="search-input" placeholder="Rechercher un film précis...">
+          <div id="search-results-dropdown" class="search-dropdown"></div>
         </div>
-        <button class="btn-action" onclick="searchMovie()">Rechercher</button>
+        <button class="btn-action" id="search-btn">Rechercher</button>
       </div>
 
       <div class="controls">
-        <select id="filter-genre" onchange="fetchNextMovie()">
+        <select id="genre-select">
           <option value="">Tous les genres</option>
         </select>
-        <select id="filter-era" onchange="fetchNextMovie()">
+        <select id="era-select">
           <option value="">Toutes les époques</option>
-          <option value="2020s">Années 2020</option>
-          <option value="2010s">Années 2010</option>
-          <option value="2000s">Années 2000</option>
-          <option value="classic">Classiques (&lt; 2000)</option>
+          <option value="2020-2026">Années 2020</option>
+          <option value="2010-2019">Années 2010</option>
+          <option value="2000-2009">Années 2000</option>
+          <option value="1900-1999">Classiques (&lt; 2000)</option>
         </select>
-        <select id="filter-duration" onchange="fetchNextMovie()">
+        <select id="duration-select">
           <option value="">Toutes les durées</option>
           <option value="short">Moins d'1h30</option>
           <option value="medium">1h30 à 2h</option>
           <option value="long">Plus de 2h</option>
         </select>
-        <button class="btn-primary" onclick="fetchNextMovie()">Proposer un film</button>
+        <select id="provider-select" style="display:none;">
+          <option value="">Toutes plateformes</option>
+          <option value="8">Netflix</option>
+          <option value="119">Prime Video</option>
+          <option value="337">Disney+</option>
+        </select>
+        <button class="btn-primary" id="propose-btn">Proposer un film</button>
       </div>
 
+      <!-- Boutons Filtres Streaming -->
       <div class="provider-filters">
-        <button class="provider-btn" data-provider="8" onclick="toggleProvider(this)">
+        <button class="provider-btn" data-provider="8">
           <img src="https://image.tmdb.org/t/p/original/pbpMk121StL1M3vR312pG3A22R0.jpg" alt="Netflix"> Netflix
         </button>
-        <button class="provider-btn" data-provider="119" onclick="toggleProvider(this)">
+        <button class="provider-btn" data-provider="119">
           <img src="https://image.tmdb.org/t/p/original/dQeAar5H9P23wqK4S2B33A22R0.jpg" alt="Prime Video"> Prime
         </button>
-        <button class="provider-btn" data-provider="337" onclick="toggleProvider(this)">
+        <button class="provider-btn" data-provider="337">
           <img src="https://image.tmdb.org/t/p/original/97yT1WRA4S2B33A22R0.jpg" alt="Disney+"> Disney+
         </button>
       </div>
 
+      <!-- Carte du Film -->
       <div class="movie-card-wrapper">
         <div id="movie-card" class="glass-card">
-          <div class="poster-container">
+          <div class="poster-container" id="poster-container">
             <img id="movie-poster" src="" alt="Affiche du film">
           </div>
           <div class="details-container">
             <div class="title-row">
               <h2 id="movie-title">Titre du film</h2>
-              <button id="btn-fav" class="btn-fav" onclick="toggleFavoriteCurrent()">Ajouter aux favoris</button>
+              <button id="fav-btn" class="btn-fav">🤍 Ajouter aux favoris</button>
             </div>
-            <div id="movie-tags" class="tags"></div>
+            <div id="movie-genres" class="tags"></div>
             <p id="movie-synopsis" class="synopsis">Synopsis du film...</p>
             
             <div class="providers-section">
@@ -108,8 +118,9 @@
                 <span>Note TMDB :</span>
                 <span id="movie-rating" class="stars">0 / 10</span>
               </div>
-              <button class="btn-action" id="btn-trailer" onclick="openTrailer()">Bande-annonce</button>
-              <button class="btn-primary" onclick="markCurrentAsWatched()">Déjà vu (suivant)</button>
+              <button class="btn-action" id="trailer-btn">Bande-annonce</button>
+              <button class="btn-action" id="share-btn">Partager</button>
+              <button class="btn-primary" id="next-btn">Suivant / Déjà vu</button>
             </div>
           </div>
         </div>
@@ -117,14 +128,14 @@
     </div>
 
     <!-- ONGLET TENDANCES -->
-    <div id="tab-trends" class="tab-content">
-      <h2>Tendances du moment</h2>
-      <div id="trends-grid" class="favorites-grid"></div>
+    <div id="tab-trending" class="tab-content">
+      <h2>Tendances de la semaine</h2>
+      <div id="trending-grid" class="favorites-grid"></div>
     </div>
 
     <!-- ONGLET FAVORIS -->
     <div id="tab-favorites" class="tab-content">
-      <h2>Mes Favoris</h2>
+      <h2 id="fav-count-title">Mes Favoris</h2>
       <div id="favorites-grid" class="favorites-grid"></div>
     </div>
 
@@ -146,20 +157,19 @@
         <div id="genre-stats" class="genre-bar-container"></div>
       </div>
 
-      <h2>Films déjà vus</h2>
+      <h2>Historique des films vus</h2>
       <div id="history-grid" class="favorites-grid"></div>
     </div>
   </main>
 
+  <!-- MODALE (Trailer / Photo) -->
+  <div id="modal" class="modal">
+    <div class="modal-content">
+      <span id="modal-close" class="modal-close">&times;</span>
+      <div id="modal-content-container"></div>
+    </div>
+  </div>
+
   <script src="script.js"></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-          .then(() => console.log('Service Worker enregistré !'))
-          .catch((err) => console.log('Erreur SW :', err));
-      });
-    }
-  </script>
 </body>
 </html>
