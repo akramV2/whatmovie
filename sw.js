@@ -1,14 +1,13 @@
-const CACHE_NAME = 'whatmovie-v1';
+const CACHE_NAME = 'whatmovie-v4';
 const ASSETS = [
   './',
   './index.html',
   './style.css',
   './script.js',
-  './manifest.json'
+  './manifest.json',
   './icon.png'
 ];
 
-// Installation du Service Worker et mise en cache des fichiers
 self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -17,7 +16,6 @@ self.addEventListener('install', (e) => {
   );
 });
 
-// Réponse avec le cache si hors-ligne
 self.addEventListener('fetch', (e) => {
   e.respondWith(
     caches.match(e.request).then((response) => {
