@@ -814,51 +814,40 @@ function checkBadges() {
   });
 }
 
-// 14. Modales & Partage
+// 14. Modales & Partage (Affiche et Bande-annonce)
+
+// Ouverture de la bande-annonce
 if (trailerBtn) {
   trailerBtn.addEventListener('click', () => {
     if (!currentMovie || !currentMovie.videos) return;
     const trailer = currentMovie.videos.find(v => v.type === 'Trailer' && v.site === 'YouTube') || currentMovie.videos[0];
+    
     if (trailer) {
       modalContainer.innerHTML = `<iframe src="https://www.youtube.com/embed/${trailer.key}?autoplay=1" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
       modal.style.display = 'flex';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       showToast("Aucune bande-annonce disponible.");
     }
   });
 }
 
-if (shareBtn) {
-  shareBtn.addEventListener('click', () => {
-    if (!currentMovie) return;
-    const shareUrl = `${window.location.origin}${window.location.pathname}?id=${currentMovie.id}`;
-
-    if (navigator.share) {
-      navigator.share({
-        title: currentMovie.title,
-        text: `Regarde ${currentMovie.title} ce soir sur WhatMovie !`,
-        url: shareUrl
-      });
-    } else {
-      navigator.clipboard.writeText(shareUrl);
-      showToast("Lien du film copié !");
-    }
-  });
-}
-
+// Ouverture de l'affiche en grand
 if (posterContainer) {
   posterContainer.addEventListener('click', () => {
-    if (posterImg.src) {
+    if (posterImg && posterImg.src) {
       modalContainer.innerHTML = `<img src="${posterImg.src}" alt="Affiche grand format">`;
       modal.style.display = 'flex';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   });
 }
 
+// Fermeture de la modale (Bouton X, Clic arrière-plan, Touche Échap)
 function closeModal() {
   if (modal) {
     modal.style.display = 'none';
-    modalContainer.innerHTML = '';
+    modalContainer.innerHTML = ''; // Coupe le son de la vidéo
   }
 }
 
