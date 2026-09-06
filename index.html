@@ -85,16 +85,20 @@
         <button class="btn-primary" id="propose-btn">Proposer un film</button>
       </div>
 
-     <!-- Boutons Filtres Streaming -->
+      <!-- Boutons Filtres Streaming -->
       <div class="provider-filters">
         <button class="provider-btn" data-provider="8">
-          <i class="fa-brands fa-netflix" style="color: #E50914;"></i> Netflix
+          <svg width="13" height="16" viewBox="0 0 11 20" fill="none" style="vertical-align: text-bottom; margin-right: 6px;">
+            <path d="M0 0H3.2L7.2 12.8V0H10.4V20H7.2L3.2 7.2V20H0V0Z" fill="#E50914"/>
+          </svg> Netflix
         </button>
         <button class="provider-btn" data-provider="119">
           <i class="fa-brands fa-amazon" style="color: #00A8E1;"></i> Prime
         </button>
         <button class="provider-btn" data-provider="337">
-          <i class="fa-solid fa-circle-play" style="color: #113CCF;"></i> Disney+
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="#38BDF8" style="vertical-align: text-bottom; margin-right: 6px;">
+            <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z"/>
+          </svg> Disney+
         </button>
       </div>
 
@@ -152,10 +156,16 @@
     <!-- ONGLET HISTORIQUE & STATS -->
     <div id="tab-history" class="tab-content">
       <div class="tools-bar">
-        <button class="btn-primary" id="export-json-btn">💾 Sauvegarder (JSON)</button>
-        <button class="btn-action" id="import-json-btn">📥 Importer (JSON)</button>
+        <button class="btn-primary" id="export-json-btn">
+          <i class="fa-solid fa-floppy-disk"></i> Sauvegarder (JSON)
+        </button>
+        <button class="btn-action" id="import-json-btn">
+          <i class="fa-solid fa-file-import"></i> Importer (JSON)
+        </button>
         <input type="file" id="import-file-input" accept=".json" style="display: none;">
-        <button class="btn-action" id="generate-bilan-btn">📸 Télécharger Bilan Ciné (Image)</button>
+        <button class="btn-action" id="generate-bilan-btn">
+          <i class="fa-solid fa-camera"></i> Télécharger Bilan Ciné (Image)
+        </button>
       </div>
 
       <div class="stats-container">
