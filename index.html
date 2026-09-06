@@ -3,7 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Balises Open Graph (Aperçu Discord, WhatsApp, Twitter...) -->
+  <meta property="og:title" content="WhatMovie - Trouve quoi regarder ce soir">
+  <meta property="og:description" content="Application fluide pour découvrir des films sur vos plateformes de streaming.">
+  <meta property="og:image" content="https://akramv2.github.io/whatmovie/favicon.png">
+  <meta property="og:type" content="website">
+
   <title>WhatMovie - Trouve quoi regarder ce soir</title>
+  
+  <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -23,6 +32,7 @@
     <p>Trouve quoi regarder ce soir</p>
   </header>
 
+  <!-- Barre de recherche avec autocomplétion -->
   <div class="search-bar-container">
     <div class="search-input-wrapper">
       <input type="text" id="search-input" placeholder="Rechercher un film précis..." autocomplete="off">
@@ -71,7 +81,7 @@
     
     <div id="movie-card" class="movie-card glass-card">
       <div class="poster-container" id="poster-container">
-        <img id="movie-poster" src="" alt="Affiche du film">
+        <img id="movie-poster" src="" alt="Affiche du film" loading="eager">
       </div>
       
       <div class="details-container">
