@@ -7,7 +7,6 @@
   <link rel="stylesheet" href="style.css">
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  
 </head>
 <body>
   <div class="dynamic-bg" id="dynamic-bg"></div>
@@ -24,27 +23,27 @@
   <!-- Navigation par Onglets -->
   <nav class="nav-bar">
     <button class="nav-btn active" data-target="tab-discover">
-      <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      <i class="fa-solid fa-compass"></i>
       <span>Découvrir</span>
     </button>
     <button class="nav-btn" data-target="tab-trending">
-      <svg viewBox="0 0 24 24"><path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/></svg>
+      <i class="fa-solid fa-fire"></i>
       <span>Tendances</span>
     </button>
     <button class="nav-btn" data-target="tab-favorites">
-      <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+      <i class="fa-solid fa-heart"></i>
       <span>Favoris</span>
     </button>
     <button class="nav-btn" data-target="tab-history">
-      <svg viewBox="0 0 24 24"><path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6a7 7 0 1 1 7 7 7.07 7.07 0 0 1-6-3.39l-1.42 1.42A9 9 0 1 0 13 3zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8z"/></svg>
+      <i class="fa-solid fa-clock-rotate-left"></i>
       <span>Historique</span>
     </button>
     <button class="nav-btn" data-target="tab-quiz">
-      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 16h-2v-2h2v2zm1.07-7.75l-.9.92C12.45 11.9 12 12.5 12 14h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z"/></svg>
+      <i class="fa-solid fa-gamepad"></i>
       <span>Quiz</span>
     </button>
     <button class="nav-btn" data-target="tab-badges">
-      <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      <i class="fa-solid fa-trophy"></i>
       <span>Succès</span>
     </button>
   </nav>
@@ -108,7 +107,9 @@
           <div class="details-container">
             <div class="title-row">
               <h2 id="movie-title">Titre du film</h2>
-              <button id="fav-btn" class="btn-fav">🤍 Ajouter aux favoris</button>
+              <button id="fav-btn" class="btn-fav">
+                <i class="fa-regular fa-heart"></i> Ajouter aux favoris
+              </button>
             </div>
             <div id="movie-genres" class="tags"></div>
             <p id="movie-synopsis" class="synopsis">Synopsis du film...</p>
@@ -129,7 +130,6 @@
                 <span id="movie-rating" class="stars">0 / 10</span>
               </div>
               <button class="btn-action" id="trailer-btn">Bande-annonce</button>
-              <button class="btn-action" id="share-btn">Partager</button>
               <button class="btn-primary" id="next-btn">Suivant / Déjà vu</button>
             </div>
           </div>
@@ -209,13 +209,6 @@
       <div id="modal-content-container"></div>
     </div>
   </div>
-
-  <div id="modal-overlay" class="modal-overlay hidden">
-  <div class="modal-container">
-    <button id="close-modal-btn" class="close-btn">&times;</button>
-    <div id="modal-content"></div>
-  </div>
-</div>
 
   <script src="script.js"></script>
 </body>
