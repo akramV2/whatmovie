@@ -57,63 +57,17 @@ let quizScore = 0;
 let quizQuestionsCount = 0;
 let currentQuizMovie = null;
 
-// Définition des Badges
-const BADGES = [
-  {
-    id: 'badge_1',
-    title: 'Premier Pas',
-    icon: '🍿',
-    desc: 'Regarder 1 film',
-    condition: (watched, favs) => watched.length >= 1
-  },
-  {
-    id: 'badge_10',
-    title: 'Cinéphile Assidu',
-    icon: '🎬',
-    desc: 'Regarder 10 films',
-    condition: (watched, favs) => watched.length >= 10
-  },
-  {
-    id: 'badge_hours',
-    title: 'Marathonien',
-    icon: '⏱️',
-    desc: 'Cumuler 20h de visionnage',
-    condition: (watched, favs) => {
-      const mins = watched.reduce((acc, m) => acc + (m.runtime || 0), 0);
-      return mins >= 1200;
-    }
-  },
-  {
-    id: 'badge_classic',
-    title: 'Cinéphile Classique',
-    icon: '🏛️',
-    desc: 'Regarder 5 films d\'avant 2000',
-    condition: (watched, favs) => {
-      const classics = watched.filter(m => {
-        return m.release_date && parseInt(m.release_date.split('-')[0]) < 2000;
-      });
-      return classics.length >= 5;
-    }
-  },
-  {
-    id: 'badge_genres',
-    title: 'Explorateur',
-    icon: '🌍',
-    desc: 'Découvrir 5 genres différents',
-    condition: (watched, favs) => {
-      const set = new Set();
-      watched.forEach(m => (m.genres || []).forEach(g => set.add(g.name || g)));
-      return set.size >= 5;
-    }
-  },
-  {
-    id: 'badge_favs',
-    title: 'Collectionneur',
-    icon: '⭐',
-    desc: 'Enregistrer 10 favoris',
-    condition: (watched, favs) => favs.length >= 10
-  }
+const badges = [
+  { id: 'first_step', title: 'Premier Pas', icon: 'fa-film', desc: 'Regarder 1 film' },
+  { id: 'movie_buff', title: 'Cinéphile Assidu', icon: 'fa-clapperboard', desc: 'Regarder 10 films' },
+  { id: 'marathon', title: 'Marathonien', icon: 'fa-stopwatch', desc: 'Cumuler 20h de visionnage' },
+  { id: 'classic', title: 'Cinéphile Classique', icon: 'fa-building-columns', desc: "Regarder 5 films d'avant 2000" },
+  { id: 'explorer', title: 'Explorateur', icon: 'fa-globe', desc: 'Découvrir 5 genres différents' },
+  { id: 'collector', title: 'Collectionneur', icon: 'fa-star', desc: 'Enregistrer 10 favoris' }
 ];
+
+// Dans la boucle de rendu HTML :
+// `<i class="fa-solid ${badge.icon} badge-icon"></i>`
 
 // Initialisation
 document.addEventListener('DOMContentLoaded', () => {
