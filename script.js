@@ -41,6 +41,8 @@ const shareBtn = document.getElementById('share-btn');
 // État de l'application
 let currentMovie = null;
 let favorites = JSON.parse(localStorage.getItem('whatmovie_favs')) || [];
+let watchedMovies = JSON.parse(localStorage.getItem('whatmovie_watched')) || [];
+let selectedProviders = [];
 let seenMovies = new Set();
 let searchDebounceTimer = null;
 
@@ -49,7 +51,9 @@ document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   fetchGenres();
   renderFavorites();
+  updateStats();
   setupKeyboardShortcuts();
+  setupProviderButtons();
   
   // Vérifie si un film spécifique est passé dans l'URL (ex: ?id=550)
   const urlParams = new URLSearchParams(window.location.search);
@@ -73,18 +77,20 @@ function initTheme() {
   }
 }
 
-themeToggle.addEventListener('click', () => {
-  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
-  if (isLight) {
-    document.documentElement.removeAttribute('data-theme');
-    themeToggle.textContent = 'Mode Clair';
-    localStorage.setItem('theme', 'dark');
-  } else {
-    document.documentElement.setAttribute('data-theme', 'light');
-    themeToggle.textContent = 'Mode Sombre';
-    localStorage.setItem('theme', 'light');
-  }
-});
+if (themeToggle) {
+  themeToggle.addEventListener('click', () => {
+    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    if (isLight) {
+      document.documentElement.removeAttribute('data-theme');
+      themeToggle.textContent = 'Mode Clair';
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.setAttribute('data-theme', 'light');
+      themeToggle.textContent = 'Mode Sombre';
+      localStorage.setItem('theme', 'light');
+    }
+  });
+}
 
 // 2. Raccourcis Clavier (Espace & Flèche Droite pour suivant)
 function setupKeyboardShortcuts() {
@@ -98,7 +104,7 @@ function setupKeyboardShortcuts() {
   });
 }
 
-// 3. Toast Notifications
+// 3. Notifications Toast
 function showToast(message) {
   let container = document.getElementById('toast-container');
   if (!container) {
@@ -108,7 +114,7 @@ function showToast(message) {
     document.body.appendChild(container);
   }
   const toast = document.createElement('div');
-  toast.className = 'toast show';
+  toast.className = 'toast';
   toast.textContent = message;
   container.appendChild(toast);
   setTimeout(() => toast.remove(), 2800);
@@ -130,7 +136,25 @@ async function fetchGenres() {
   }
 }
 
-// 5. Charger un Film Aléatoire avec Filtres
+// 5. Gestion des Boutons Filtres Streaming
+function setupProviderButtons() {
+  const pBtns = document.querySelectorAll('.provider-btn');
+  pBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const pId = btn.getAttribute('data-provider');
+      if (selectedProviders.includes(pId)) {
+        selectedProviders = selectedProviders.filter(id => id !== pId);
+        btn.classList.remove('active');
+      } else {
+        selectedProviders.push(pId);
+        btn.classList.add('active');
+      }
+      loadRandomMovie();
+    });
+  });
+}
+
+// 6. Charger un Film Aléatoire avec Filtres
 async function loadRandomMovie() {
   if (spinner) spinner.style.display = 'block';
   
@@ -138,12 +162,16 @@ async function loadRandomMovie() {
     const genre = genreSelect.value;
     const era = eraSelect.value;
     const duration = durationSelect.value;
-    const provider = providerSelect.value;
 
     let url = `${BASE_URL}/discover/movie?api_key=${API_KEY}&language=fr-FR&sort_by=popularity.desc&include_adult=false&page=${Math.floor(Math.random() * 5) + 1}`;
 
     if (genre) url += `&with_genres=${genre}`;
-    if (provider) url += `&with_watch_providers=${provider}&watch_region=FR`;
+    
+    // Combination des boutons de streaming ou du select
+    const activeProviders = selectedProviders.length > 0 ? selectedProviders.join('|') : providerSelect.value;
+    if (activeProviders) {
+      url += `&with_watch_providers=${activeProviders}&watch_region=FR`;
+    }
 
     if (era) {
       const [start, end] = era.split('-');
@@ -180,21 +208,23 @@ async function loadRandomMovie() {
   }
 }
 
-// 6. Recherche Dynamique
-searchInput.addEventListener('input', (e) => {
-  const query = e.target.value.trim();
-  clearTimeout(searchDebounceTimer);
+// 7. Recherche Dynamique
+if (searchInput) {
+  searchInput.addEventListener('input', (e) => {
+    const query = e.target.value.trim();
+    clearTimeout(searchDebounceTimer);
 
-  if (query.length < 2) {
-    searchDropdown.classList.remove('active');
-    searchDropdown.innerHTML = '';
-    return;
-  }
+    if (query.length < 2) {
+      searchDropdown.classList.remove('active');
+      searchDropdown.innerHTML = '';
+      return;
+    }
 
-  searchDebounceTimer = setTimeout(() => {
-    fetchSearchSuggestions(query);
-  }, 400);
-});
+    searchDebounceTimer = setTimeout(() => {
+      fetchSearchSuggestions(query);
+    }, 400);
+  });
+}
 
 async function fetchSearchSuggestions(query) {
   try {
@@ -233,7 +263,7 @@ async function fetchSearchSuggestions(query) {
       });
       searchDropdown.classList.add('active');
     } else {
-      searchDropdown.innerHTML = '<div class="search-no-result">Aucun film trouvé</div>';
+      searchDropdown.innerHTML = '<div class="search-no-result" style="padding:10px; font-size:0.8rem; color:var(--text-secondary);">Aucun film trouvé</div>';
       searchDropdown.classList.add('active');
     }
   } catch (err) {
@@ -242,12 +272,12 @@ async function fetchSearchSuggestions(query) {
 }
 
 document.addEventListener('click', (e) => {
-  if (!e.target.closest('.search-input-wrapper')) {
+  if (searchDropdown && !e.target.closest('.search-input-wrapper')) {
     searchDropdown.classList.remove('active');
   }
 });
 
-// 7. Récupération & Affichage d'un Film
+// 8. Récupération & Affichage d'un Film
 async function fetchMovieDetails(movieId) {
   try {
     const [detailsRes, creditsRes, providersRes, videosRes] = await Promise.all([
@@ -282,18 +312,19 @@ function displayMovie(m) {
   if (m.poster_path) {
     posterImg.src = `${IMAGE_BASE_URL}${m.poster_path}`;
     dynamicBg.style.backgroundImage = `url(${IMAGE_BASE_URL}${m.poster_path})`;
-    dynamicBg.style.opacity = '1';
   } else {
     posterImg.src = 'https://via.placeholder.com/300x450?text=Pas+d%27image';
   }
 
   movieGenres.innerHTML = '';
-  m.genres.forEach(g => {
-    const span = document.createElement('span');
-    span.className = 'tag';
-    span.textContent = g.name;
-    movieGenres.appendChild(span);
-  });
+  if (m.genres) {
+    m.genres.forEach(g => {
+      const span = document.createElement('span');
+      span.className = 'tag';
+      span.textContent = g.name;
+      movieGenres.appendChild(span);
+    });
+  }
 
   if (m.runtime) {
     const spanRuntime = document.createElement('span');
@@ -319,7 +350,7 @@ function displayMovie(m) {
     });
   }
 
-  // Logos de streaming cliquables vers Google/Plateforme
+  // Streaming logos
   movieProviders.innerHTML = '';
   const flatrate = m.providers?.flatrate;
   if (flatrate && flatrate.length > 0) {
@@ -332,7 +363,7 @@ function displayMovie(m) {
       const img = document.createElement('img');
       img.src = `${IMAGE_BASE_URL}${p.logo_path}`;
       img.alt = p.provider_name;
-      img.className = 'provider-logo clickable-provider';
+      img.className = 'provider-logo';
 
       link.appendChild(img);
       movieProviders.appendChild(link);
@@ -345,13 +376,16 @@ function displayMovie(m) {
 }
 
 function triggerSwipeNext() {
+  if (currentMovie) {
+    markAsWatched(currentMovie);
+  }
   movieCard.classList.add('swipe-out');
   setTimeout(() => {
     loadRandomMovie();
   }, 300);
 }
 
-// 8. Favoris
+// 9. Favoris
 function toggleFavorite() {
   if (!currentMovie) return;
   const index = favorites.findIndex(f => f.id === currentMovie.id);
@@ -378,8 +412,9 @@ function updateFavButtonState() {
 }
 
 function renderFavorites() {
+  if (!favoritesGrid) return;
   favoritesGrid.innerHTML = '';
-  favCountTitle.textContent = `Mes Favoris (${favorites.length})`;
+  if (favCountTitle) favCountTitle.textContent = `Mes Favoris (${favorites.length})`;
 
   if (favorites.length === 0) {
     favoritesGrid.innerHTML = '<p style="color: var(--text-secondary); grid-column: 1/-1;">Aucun film enregistré pour le moment.</p>';
@@ -395,7 +430,10 @@ function renderFavorites() {
       <button title="Supprimer">&times;</button>
     `;
 
-    card.querySelector('img').addEventListener('click', () => fetchMovieDetails(f.id));
+    card.querySelector('img').addEventListener('click', () => {
+      fetchMovieDetails(f.id);
+      switchTab('tab-discover');
+    });
     card.querySelector('button').addEventListener('click', (e) => {
       e.stopPropagation();
       favorites = favorites.filter(fav => fav.id !== f.id);
@@ -409,40 +447,125 @@ function renderFavorites() {
   });
 }
 
-// 9. Modales & Partage (Génération du lien direct ?id=)
-trailerBtn.addEventListener('click', () => {
-  if (!currentMovie || !currentMovie.videos) return;
-  const trailer = currentMovie.videos.find(v => v.type === 'Trailer' && v.site === 'YouTube') || currentMovie.videos[0];
-  if (trailer) {
-    modalContainer.innerHTML = `<iframe src="https://www.youtube.com/embed/${trailer.key}?autoplay=1" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
-    modal.style.display = 'flex';
-  } else {
-    showToast("Aucune bande-annonce disponible.");
-  }
-});
-
-shareBtn.addEventListener('click', () => {
-  if (!currentMovie) return;
-  const shareUrl = `${window.location.origin}${window.location.pathname}?id=${currentMovie.id}`;
-
-  if (navigator.share) {
-    navigator.share({
-      title: currentMovie.title,
-      text: `Regarde ${currentMovie.title} ce soir sur WhatMovie !`,
-      url: shareUrl
+// 10. Historique & Stats
+function markAsWatched(m) {
+  if (!watchedMovies.some(w => w.id === m.id)) {
+    watchedMovies.push({
+      id: m.id,
+      title: m.title,
+      poster_path: m.poster_path,
+      runtime: m.runtime || 110,
+      genres: m.genres || []
     });
-  } else {
-    navigator.clipboard.writeText(shareUrl);
-    showToast("Lien du film copié !");
+    localStorage.setItem('whatmovie_watched', JSON.stringify(watchedMovies));
+    updateStats();
   }
-});
+}
 
-// Événements boutons
-proposeBtn.addEventListener('click', loadRandomMovie);
-nextBtn.addEventListener('click', triggerSwipeNext);
-favBtn.addEventListener('click', toggleFavorite);
+function updateStats() {
+  const countElem = document.getElementById('stat-count');
+  if (countElem) countElem.textContent = watchedMovies.length;
 
-// Fonction de recherche directe de film
+  const totalMinutes = watchedMovies.reduce((acc, m) => acc + (m.runtime || 0), 0);
+  const hours = Math.floor(totalMinutes / 60);
+  const timeElem = document.getElementById('stat-time');
+  if (timeElem) timeElem.textContent = `${hours}h`;
+
+  const genreCounts = {};
+  watchedMovies.forEach(m => {
+    (m.genres || []).forEach(g => {
+      const name = g.name || g;
+      genreCounts[name] = (genreCounts[name] || 0) + 1;
+    });
+  });
+
+  const sortedGenres = Object.entries(genreCounts).sort((a, b) => b[1] - a[1]).slice(0, 4);
+  const maxCount = sortedGenres[0] ? sortedGenres[0][1] : 1;
+  const genreContainer = document.getElementById('genre-stats');
+
+  if (genreContainer) {
+    genreContainer.innerHTML = sortedGenres.map(([genre, count]) => {
+      const percent = Math.round((count / maxCount) * 100);
+      return `
+        <div class="genre-bar-item">
+          <span class="genre-name">${genre}</span>
+          <div class="genre-bar-bg">
+            <div class="genre-bar-fill" style="width: ${percent}%;"></div>
+          </div>
+          <span>${count}</span>
+        </div>
+      `;
+    }).join('');
+  }
+
+  const historyGrid = document.getElementById('history-grid');
+  if (historyGrid) {
+    historyGrid.innerHTML = watchedMovies.map(m => `
+      <div class="fav-card" onclick="fetchMovieDetails(${m.id}); switchTab('tab-discover');">
+        <img src="${m.poster_path ? IMAGE_BASE_URL + m.poster_path : 'https://via.placeholder.com/150'}" alt="${m.title}">
+        <p>${m.title}</p>
+      </div>
+    `).join('');
+  }
+}
+
+// 11. Modales & Partage
+if (trailerBtn) {
+  trailerBtn.addEventListener('click', () => {
+    if (!currentMovie || !currentMovie.videos) return;
+    const trailer = currentMovie.videos.find(v => v.type === 'Trailer' && v.site === 'YouTube') || currentMovie.videos[0];
+    if (trailer) {
+      modalContainer.innerHTML = `<iframe src="https://www.youtube.com/embed/${trailer.key}?autoplay=1" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
+      modal.style.display = 'flex';
+    } else {
+      showToast("Aucune bande-annonce disponible.");
+    }
+  });
+}
+
+if (shareBtn) {
+  shareBtn.addEventListener('click', () => {
+    if (!currentMovie) return;
+    const shareUrl = `${window.location.origin}${window.location.pathname}?id=${currentMovie.id}`;
+
+    if (navigator.share) {
+      navigator.share({
+        title: currentMovie.title,
+        text: `Regarde ${currentMovie.title} ce soir sur WhatMovie !`,
+        url: shareUrl
+      });
+    } else {
+      navigator.clipboard.writeText(shareUrl);
+      showToast("Lien du film copié !");
+    }
+  });
+}
+
+if (posterContainer) {
+  posterContainer.addEventListener('click', () => {
+    if (posterImg.src) {
+      modalContainer.innerHTML = `<img src="${posterImg.src}" alt="Affiche grand format">`;
+      modal.style.display = 'flex';
+    }
+  });
+}
+
+function closeModal() {
+  if (modal) {
+    modal.style.display = 'none';
+    modalContainer.innerHTML = '';
+  }
+}
+
+if (modalClose) modalClose.addEventListener('click', closeModal);
+window.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+
+// 12. Événements Boutons
+if (proposeBtn) proposeBtn.addEventListener('click', loadRandomMovie);
+if (nextBtn) nextBtn.addEventListener('click', triggerSwipeNext);
+if (favBtn) favBtn.addEventListener('click', toggleFavorite);
+
 async function searchMovie(query) {
   const cleanQuery = query.trim();
   if (!cleanQuery) return;
@@ -455,74 +578,61 @@ async function searchMovie(query) {
       const movie = data.results[0];
       seenMovies.add(movie.id);
       await fetchMovieDetails(movie.id);
-      searchDropdown.classList.remove('active');
+      if (searchDropdown) searchDropdown.classList.remove('active');
     } else {
       showToast("Aucun film trouvé pour cette recherche.");
     }
   } catch (err) {
-    console.error('Erreur lors de la recherche :', err);
     showToast("Erreur lors de la recherche du film.");
   }
 }
 
-searchBtn.addEventListener('click', () => {
-  const query = searchInput.value.trim();
-  if (query) {
-    searchMovie(query);
-    searchDropdown.classList.remove('active');
-  }
-});
-
-searchInput.addEventListener('keypress', (e) => {
-  if (e.key === 'Enter') {
+if (searchBtn) {
+  searchBtn.addEventListener('click', () => {
     const query = searchInput.value.trim();
-    if (query) {
-      searchMovie(query);
-      searchDropdown.classList.remove('active');
-    }
-  }
-});
-
-posterContainer.addEventListener('click', () => {
-  if (posterImg.src) {
-    modalContainer.innerHTML = `<img src="${posterImg.src}" alt="Affiche grand format">`;
-    modal.style.display = 'flex';
-  }
-});
-
-function closeModal() {
-  modal.style.display = 'none';
-  modalContainer.innerHTML = '';
+    if (query) searchMovie(query);
+  });
 }
 
-modalClose.addEventListener('click', closeModal);
-window.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
-window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+if (searchInput) {
+  searchInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      const query = searchInput.value.trim();
+      if (query) searchMovie(query);
+    }
+  });
+}
 
-// 10. Onglets & Tendances
+// 13. Onglets & Changements de Vues
 const navButtons = document.querySelectorAll('.nav-btn');
 const tabContents = document.querySelectorAll('.tab-content');
+
+function switchTab(targetId) {
+  navButtons.forEach(b => b.classList.remove('active'));
+  tabContents.forEach(c => c.classList.remove('active'));
+
+  const activeBtn = document.querySelector(`[data-target="${targetId}"]`);
+  if (activeBtn) activeBtn.classList.add('active');
+  
+  const targetTab = document.getElementById(targetId);
+  if (targetTab) targetTab.classList.add('active');
+
+  if (targetId === 'tab-trending') loadTrendingMovies();
+  if (targetId === 'tab-favorites') renderFavorites();
+  if (targetId === 'tab-history') updateStats();
+}
 
 navButtons.forEach(btn => {
   btn.addEventListener('click', () => {
     const targetId = btn.getAttribute('data-target');
-
-    navButtons.forEach(b => b.classList.remove('active'));
-    tabContents.forEach(c => c.classList.remove('active'));
-
-    btn.classList.add('active');
-    document.getElementById(targetId).classList.add('active');
-
-    if (targetId === 'tab-trending') {
-      loadTrendingMovies();
-    }
+    switchTab(targetId);
   });
 });
 
 async function loadTrendingMovies() {
   const trendingGrid = document.getElementById('trending-grid');
   if (!trendingGrid) return;
-  trendingGrid.innerHTML = '<div class="spinner" style="position:relative; left:0; transform:none;"></div>';
+  trendingGrid.innerHTML = '<p style="color: var(--text-secondary);">Chargement...</p>';
 
   try {
     const res = await fetch(`${BASE_URL}/trending/movie/week?api_key=${API_KEY}&language=fr-FR`);
@@ -540,7 +650,7 @@ async function loadTrendingMovies() {
         card.addEventListener('click', () => {
           seenMovies.add(m.id);
           fetchMovieDetails(m.id);
-          document.querySelector('[data-target="tab-discover"]').click();
+          switchTab('tab-discover');
         });
         trendingGrid.appendChild(card);
       });
