@@ -1,4 +1,4 @@
-const API_KEY = '61cce23d544a028a9ee01690d3455337'; // Remplace par ta clé API TMDB
+const API_KEY = '61cce23d544a028a9ee01690d3455337';
 const BASE_URL = 'https://api.themoviedb.org/3';
 const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
 
@@ -24,6 +24,7 @@ const nextBtn = document.getElementById('next-btn');
 
 const searchInput = document.getElementById('search-input');
 const searchBtn = document.getElementById('search-btn');
+const searchDropdown = document.getElementById('search-results-dropdown');
 
 const favBtn = document.getElementById('fav-btn');
 const favoritesGrid = document.getElementById('favorites-grid');
@@ -41,30 +42,79 @@ const shareBtn = document.getElementById('share-btn');
 let currentMovie = null;
 let favorites = JSON.parse(localStorage.getItem('whatmovie_favs')) || [];
 let seenMovies = new Set();
+let searchDebounceTimer = null;
 
 // Initialisation
 document.addEventListener('DOMContentLoaded', () => {
+  initTheme();
   fetchGenres();
-  loadRandomMovie();
   renderFavorites();
+  setupKeyboardShortcuts();
   
-  if (localStorage.getItem('theme') === 'light') {
-    document.documentElement.setAttribute('data-theme', 'light');
-    themeToggle.textContent = 'Mode Sombre';
+  // Vérifie si un film spécifique est passé dans l'URL (ex: ?id=550)
+  const urlParams = new URLSearchParams(window.location.search);
+  const movieId = urlParams.get('id');
+  if (movieId) {
+    fetchMovieDetails(movieId);
+  } else {
+    loadRandomMovie();
   }
 });
 
-// Toast notifications
+// 1. Thème et LocalStorage
+function initTheme() {
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+    if (themeToggle) themeToggle.textContent = 'Mode Sombre';
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+    if (themeToggle) themeToggle.textContent = 'Mode Clair';
+  }
+}
+
+themeToggle.addEventListener('click', () => {
+  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  if (isLight) {
+    document.documentElement.removeAttribute('data-theme');
+    themeToggle.textContent = 'Mode Clair';
+    localStorage.setItem('theme', 'dark');
+  } else {
+    document.documentElement.setAttribute('data-theme', 'light');
+    themeToggle.textContent = 'Mode Sombre';
+    localStorage.setItem('theme', 'light');
+  }
+});
+
+// 2. Raccourcis Clavier (Espace & Flèche Droite pour suivant)
+function setupKeyboardShortcuts() {
+  document.addEventListener('keydown', (e) => {
+    if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+
+    if (e.code === 'Space' || e.code === 'ArrowRight') {
+      e.preventDefault();
+      triggerSwipeNext();
+    }
+  });
+}
+
+// 3. Toast Notifications
 function showToast(message) {
-  const container = document.getElementById('toast-container');
+  let container = document.getElementById('toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toast-container';
+    container.className = 'toast-container';
+    document.body.appendChild(container);
+  }
   const toast = document.createElement('div');
-  toast.className = 'toast';
+  toast.className = 'toast show';
   toast.textContent = message;
   container.appendChild(toast);
   setTimeout(() => toast.remove(), 2800);
 }
 
-// Charger les genres
+// 4. Charger les Genres
 async function fetchGenres() {
   try {
     const res = await fetch(`${BASE_URL}/genre/movie/list?api_key=${API_KEY}&language=fr-FR`);
@@ -80,9 +130,9 @@ async function fetchGenres() {
   }
 }
 
-// Charger un film avec filtres
+// 5. Charger un Film Aléatoire avec Filtres
 async function loadRandomMovie() {
-  spinner.style.display = 'block';
+  if (spinner) spinner.style.display = 'block';
   
   try {
     const genre = genreSelect.value;
@@ -126,15 +176,11 @@ async function loadRandomMovie() {
   } catch (err) {
     showToast("Erreur lors de la récupération des films.");
   } finally {
-    spinner.style.display = 'none';
+    if (spinner) spinner.style.display = 'none';
   }
 }
 
-// Éléments supplémentaires du DOM pour la recherche
-const searchDropdown = document.getElementById('search-results-dropdown');
-let searchDebounceTimer = null;
-
-// Écouteur de la saisie utilisateur (Debounce de 400ms)
+// 6. Recherche Dynamique
 searchInput.addEventListener('input', (e) => {
   const query = e.target.value.trim();
   clearTimeout(searchDebounceTimer);
@@ -150,7 +196,6 @@ searchInput.addEventListener('input', (e) => {
   }, 400);
 });
 
-// Requête API pour les suggestions
 async function fetchSearchSuggestions(query) {
   try {
     const res = await fetch(`${BASE_URL}/search/movie?api_key=${API_KEY}&language=fr-FR&query=${encodeURIComponent(query)}&page=1`);
@@ -196,41 +241,34 @@ async function fetchSearchSuggestions(query) {
   }
 }
 
-// Recherche directe au clic sur le bouton
-searchBtn.addEventListener('click', () => {
-  const query = searchInput.value.trim();
-  if (query) {
-    searchMovie(query);
-    searchDropdown.classList.remove('active');
-  }
-});
-
-// Fermer le menu déroulant si on clique ailleurs sur la page
 document.addEventListener('click', (e) => {
   if (!e.target.closest('.search-input-wrapper')) {
     searchDropdown.classList.remove('active');
   }
 });
 
-// Récupération des détails
+// 7. Récupération & Affichage d'un Film
 async function fetchMovieDetails(movieId) {
-  const [detailsRes, creditsRes, providersRes, videosRes] = await Promise.all([
-    fetch(`${BASE_URL}/movie/${movieId}?api_key=${API_KEY}&language=fr-FR`),
-    fetch(`${BASE_URL}/movie/${movieId}/credits?api_key=${API_KEY}&language=fr-FR`),
-    fetch(`${BASE_URL}/movie/${movieId}/watch/providers?api_key=${API_KEY}`),
-    fetch(`${BASE_URL}/movie/${movieId}/videos?api_key=${API_KEY}&language=fr-FR`)
-  ]);
+  try {
+    const [detailsRes, creditsRes, providersRes, videosRes] = await Promise.all([
+      fetch(`${BASE_URL}/movie/${movieId}?api_key=${API_KEY}&language=fr-FR`),
+      fetch(`${BASE_URL}/movie/${movieId}/credits?api_key=${API_KEY}&language=fr-FR`),
+      fetch(`${BASE_URL}/movie/${movieId}/watch/providers?api_key=${API_KEY}`),
+      fetch(`${BASE_URL}/movie/${movieId}/videos?api_key=${API_KEY}&language=fr-FR`)
+    ]);
 
-  const movie = await detailsRes.json();
-  const credits = await creditsRes.json();
-  const providers = await providersRes.json();
-  const videos = await videosRes.json();
+    const movie = await detailsRes.json();
+    const credits = await creditsRes.json();
+    const providers = await providersRes.json();
+    const videos = await videosRes.json();
 
-  currentMovie = { ...movie, credits, providers: providers.results?.FR, videos: videos.results };
-  displayMovie(currentMovie);
+    currentMovie = { ...movie, credits, providers: providers.results?.FR, videos: videos.results };
+    displayMovie(currentMovie);
+  } catch (err) {
+    console.error('Erreur détails film:', err);
+  }
 }
 
-// Affichage
 function displayMovie(m) {
   movieCard.classList.remove('swipe-out');
   movieCard.classList.remove('fade-in');
@@ -269,10 +307,10 @@ function displayMovie(m) {
 
   movieCast.innerHTML = '';
   if (m.credits?.cast) {
-    m.credits.cast.slice(0, 4).forEach(actor => {
+    m.credits.cast.slice(0, 5).forEach(actor => {
       const item = document.createElement('div');
       item.className = 'cast-item';
-      const photo = actor.profile_path ? `${IMAGE_BASE_URL}${actor.profile_path}` : 'https://via.placeholder.com/50';
+      const photo = actor.profile_path ? `${IMAGE_BASE_URL}${actor.profile_path}` : 'https://via.placeholder.com/45';
       item.innerHTML = `
         <img src="${photo}" alt="${actor.name}" class="cast-avatar">
         <span class="cast-name">${actor.name}</span>
@@ -281,16 +319,23 @@ function displayMovie(m) {
     });
   }
 
+  // Logos de streaming cliquables vers Google/Plateforme
   movieProviders.innerHTML = '';
   const flatrate = m.providers?.flatrate;
   if (flatrate && flatrate.length > 0) {
     flatrate.forEach(p => {
+      const link = document.createElement('a');
+      link.href = `https://www.google.com/search?q=${encodeURIComponent(m.title + ' streaming ' + p.provider_name)}`;
+      link.target = '_blank';
+      link.title = `Regarder sur ${p.provider_name}`;
+
       const img = document.createElement('img');
       img.src = `${IMAGE_BASE_URL}${p.logo_path}`;
       img.alt = p.provider_name;
-      img.className = 'provider-logo';
-      img.title = p.provider_name;
-      movieProviders.appendChild(img);
+      img.className = 'provider-logo clickable-provider';
+
+      link.appendChild(img);
+      movieProviders.appendChild(link);
     });
   } else {
     movieProviders.textContent = 'Non disponible en streaming FR';
@@ -306,7 +351,7 @@ function triggerSwipeNext() {
   }, 300);
 }
 
-// Gestion des favoris
+// 8. Favoris
 function toggleFavorite() {
   if (!currentMovie) return;
   const index = favorites.findIndex(f => f.id === currentMovie.id);
@@ -329,7 +374,7 @@ function toggleFavorite() {
 function updateFavButtonState() {
   if (!currentMovie) return;
   const isFav = favorites.some(f => f.id === currentMovie.id);
-  favBtn.textContent = isFav ? 'Dans vos favoris' : 'Ajouter aux favoris';
+  favBtn.textContent = isFav ? '❤️ Dans vos favoris' : '🤍 Ajouter aux favoris';
 }
 
 function renderFavorites() {
@@ -364,7 +409,7 @@ function renderFavorites() {
   });
 }
 
-// Modal YouTube Trailer
+// 9. Modales & Partage (Génération du lien direct ?id=)
 trailerBtn.addEventListener('click', () => {
   if (!currentMovie || !currentMovie.videos) return;
   const trailer = currentMovie.videos.find(v => v.type === 'Trailer' && v.site === 'YouTube') || currentMovie.videos[0];
@@ -376,46 +421,38 @@ trailerBtn.addEventListener('click', () => {
   }
 });
 
-// Partager
 shareBtn.addEventListener('click', () => {
   if (!currentMovie) return;
+  const shareUrl = `${window.location.origin}${window.location.pathname}?id=${currentMovie.id}`;
+
   if (navigator.share) {
     navigator.share({
       title: currentMovie.title,
       text: `Regarde ${currentMovie.title} ce soir sur WhatMovie !`,
-      url: window.location.href
+      url: shareUrl
     });
   } else {
-    navigator.clipboard.writeText(window.location.href);
-    showToast("Lien copié dans le presse-papier.");
+    navigator.clipboard.writeText(shareUrl);
+    showToast("Lien du film copié !");
   }
 });
 
-// Événements
+// Événements boutons
 proposeBtn.addEventListener('click', loadRandomMovie);
 nextBtn.addEventListener('click', triggerSwipeNext);
 favBtn.addEventListener('click', toggleFavorite);
 
-searchBtn.addEventListener('click', () => searchMovie(searchInput.value));
-searchInput.addEventListener('keypress', (e) => {
-  if (e.key === 'Enter') searchMovie(searchInput.value);
-});
-
-// Thème
-themeToggle.addEventListener('click', () => {
-  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
-  if (isLight) {
-    document.documentElement.removeAttribute('data-theme');
-    themeToggle.textContent = 'Mode Clair';
-    localStorage.setItem('theme', 'dark');
-  } else {
-    document.documentElement.setAttribute('data-theme', 'light');
-    themeToggle.textContent = 'Mode Sombre';
-    localStorage.setItem('theme', 'light');
+searchBtn.addEventListener('click', () => {
+  const query = searchInput.value.trim();
+  if (query) {
+    searchDropdown.classList.remove('active');
   }
 });
 
-// Modal Poster
+searchInput.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') searchDropdown.classList.remove('active');
+});
+
 posterContainer.addEventListener('click', () => {
   if (posterImg.src) {
     modalContainer.innerHTML = `<img src="${posterImg.src}" alt="Affiche grand format">`;
@@ -423,7 +460,6 @@ posterContainer.addEventListener('click', () => {
   }
 });
 
-// Fermeture modale
 function closeModal() {
   modal.style.display = 'none';
   modalContainer.innerHTML = '';
@@ -433,7 +469,7 @@ modalClose.addEventListener('click', closeModal);
 window.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
 
-// Navigation par Onglets
+// 10. Onglets & Tendances
 const navButtons = document.querySelectorAll('.nav-btn');
 const tabContents = document.querySelectorAll('.tab-content');
 
@@ -453,9 +489,9 @@ navButtons.forEach(btn => {
   });
 });
 
-// Chargement des tendances
 async function loadTrendingMovies() {
   const trendingGrid = document.getElementById('trending-grid');
+  if (!trendingGrid) return;
   trendingGrid.innerHTML = '<div class="spinner" style="position:relative; left:0; transform:none;"></div>';
 
   try {
@@ -474,7 +510,6 @@ async function loadTrendingMovies() {
         card.addEventListener('click', () => {
           seenMovies.add(m.id);
           fetchMovieDetails(m.id);
-          // Revenir sur l'onglet Découvrir pour voir le film
           document.querySelector('[data-target="tab-discover"]').click();
         });
         trendingGrid.appendChild(card);
