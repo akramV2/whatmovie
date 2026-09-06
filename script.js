@@ -38,6 +38,12 @@ const posterContainer = document.getElementById('poster-container');
 const trailerBtn = document.getElementById('trailer-btn');
 const shareBtn = document.getElementById('share-btn');
 
+// Boutons de sauvegarde & bilan
+const exportJsonBtn = document.getElementById('export-json-btn');
+const importJsonBtn = document.getElementById('import-json-btn');
+const importFileInput = document.getElementById('import-file-input');
+const generateBilanBtn = document.getElementById('generate-bilan-btn');
+
 // État de l'application
 let currentMovie = null;
 let favorites = JSON.parse(localStorage.getItem('whatmovie_favs')) || [];
@@ -46,16 +52,81 @@ let selectedProviders = [];
 let seenMovies = new Set();
 let searchDebounceTimer = null;
 
+// État du Quiz
+let quizScore = 0;
+let quizQuestionsCount = 0;
+let currentQuizMovie = null;
+
+// Définition des Badges
+const BADGES = [
+  {
+    id: 'badge_1',
+    title: 'Premier Pas',
+    icon: '🍿',
+    desc: 'Regarder 1 film',
+    condition: (watched, favs) => watched.length >= 1
+  },
+  {
+    id: 'badge_10',
+    title: 'Cinéphile Assidu',
+    icon: '🎬',
+    desc: 'Regarder 10 films',
+    condition: (watched, favs) => watched.length >= 10
+  },
+  {
+    id: 'badge_hours',
+    title: 'Marathonien',
+    icon: '⏱️',
+    desc: 'Cumuler 20h de visionnage',
+    condition: (watched, favs) => {
+      const mins = watched.reduce((acc, m) => acc + (m.runtime || 0), 0);
+      return mins >= 1200;
+    }
+  },
+  {
+    id: 'badge_classic',
+    title: 'Cinéphile Classique',
+    icon: '🏛️',
+    desc: 'Regarder 5 films d\'avant 2000',
+    condition: (watched, favs) => {
+      const classics = watched.filter(m => {
+        return m.release_date && parseInt(m.release_date.split('-')[0]) < 2000;
+      });
+      return classics.length >= 5;
+    }
+  },
+  {
+    id: 'badge_genres',
+    title: 'Explorateur',
+    icon: '🌍',
+    desc: 'Découvrir 5 genres différents',
+    condition: (watched, favs) => {
+      const set = new Set();
+      watched.forEach(m => (m.genres || []).forEach(g => set.add(g.name || g)));
+      return set.size >= 5;
+    }
+  },
+  {
+    id: 'badge_favs',
+    title: 'Collectionneur',
+    icon: '⭐',
+    desc: 'Enregistrer 10 favoris',
+    condition: (watched, favs) => favs.length >= 10
+  }
+];
+
 // Initialisation
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   fetchGenres();
   renderFavorites();
   updateStats();
+  checkBadges();
   setupKeyboardShortcuts();
   setupProviderButtons();
+  setupExportImport();
+  setupQuizListeners();
   
-  // Vérifie si un film spécifique est passé dans l'URL (ex: ?id=550)
   const urlParams = new URLSearchParams(window.location.search);
   const movieId = urlParams.get('id');
   if (movieId) {
@@ -92,7 +163,7 @@ if (themeToggle) {
   });
 }
 
-// 2. Raccourcis Clavier (Espace & Flèche Droite pour suivant)
+// 2. Raccourcis Clavier
 function setupKeyboardShortcuts() {
   document.addEventListener('keydown', (e) => {
     if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
@@ -167,7 +238,6 @@ async function loadRandomMovie() {
 
     if (genre) url += `&with_genres=${genre}`;
     
-    // Combination des boutons de streaming ou du select
     const activeProviders = selectedProviders.length > 0 ? selectedProviders.join('|') : providerSelect.value;
     if (activeProviders) {
       url += `&with_watch_providers=${activeProviders}&watch_region=FR`;
@@ -350,7 +420,6 @@ function displayMovie(m) {
     });
   }
 
-  // Streaming logos
   movieProviders.innerHTML = '';
   const flatrate = m.providers?.flatrate;
   if (flatrate && flatrate.length > 0) {
@@ -403,6 +472,7 @@ function toggleFavorite() {
   localStorage.setItem('whatmovie_favs', JSON.stringify(favorites));
   updateFavButtonState();
   renderFavorites();
+  checkBadges();
 }
 
 function updateFavButtonState() {
@@ -440,6 +510,7 @@ function renderFavorites() {
       localStorage.setItem('whatmovie_favs', JSON.stringify(favorites));
       renderFavorites();
       updateFavButtonState();
+      checkBadges();
       showToast("Favori supprimé.");
     });
 
@@ -455,10 +526,12 @@ function markAsWatched(m) {
       title: m.title,
       poster_path: m.poster_path,
       runtime: m.runtime || 110,
-      genres: m.genres || []
+      genres: m.genres || [],
+      release_date: m.release_date || ''
     });
     localStorage.setItem('whatmovie_watched', JSON.stringify(watchedMovies));
     updateStats();
+    checkBadges();
   }
 }
 
@@ -509,7 +582,239 @@ function updateStats() {
   }
 }
 
-// 11. Modales & Partage
+// 11. Sauvegarde, Import / Export & Bilan Ciné
+function setupExportImport() {
+  if (exportJsonBtn) {
+    exportJsonBtn.addEventListener('click', () => {
+      const data = {
+        favorites: favorites,
+        watchedMovies: watchedMovies,
+        exportDate: new Date().toISOString()
+      };
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `whatmovie_backup_${new Date().toISOString().slice(0,10)}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      showToast("Sauvegarde exportée avec succès !");
+    });
+  }
+
+  if (importJsonBtn && importFileInput) {
+    importJsonBtn.addEventListener('click', () => importFileInput.click());
+    importFileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        try {
+          const parsed = JSON.parse(event.target.result);
+          if (Array.isArray(parsed.favorites) && Array.isArray(parsed.watchedMovies)) {
+            favorites = parsed.favorites;
+            watchedMovies = parsed.watchedMovies;
+            localStorage.setItem('whatmovie_favs', JSON.stringify(favorites));
+            localStorage.setItem('whatmovie_watched', JSON.stringify(watchedMovies));
+            renderFavorites();
+            updateStats();
+            checkBadges();
+            showToast("Données importées avec succès !");
+          } else {
+            showToast("Fichier de sauvegarde invalide.");
+          }
+        } catch (err) {
+          showToast("Erreur lors de la lecture du fichier.");
+        }
+      };
+      reader.readAsText(file);
+    });
+  }
+
+  if (generateBilanBtn) {
+    generateBilanBtn.addEventListener('click', generateBilanCine);
+  }
+}
+
+function generateBilanCine() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 800;
+  canvas.height = 480;
+  const ctx = canvas.getContext('2d');
+
+  // Arrière-plan dégradé
+  const grad = ctx.createLinearGradient(0, 0, 800, 480);
+  grad.addColorStop(0, '#0b0f19');
+  grad.addColorStop(1, '#1e1b4b');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 800, 480);
+
+  // Cadre néon
+  ctx.strokeStyle = '#6366f1';
+  ctx.lineWidth = 4;
+  ctx.strokeRect(16, 16, 768, 448);
+
+  // Titre principal
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 34px sans-serif';
+  ctx.fillText('🎬 MON BILAN CINÉ', 40, 70);
+
+  ctx.fillStyle = '#9ca3af';
+  ctx.font = '16px sans-serif';
+  ctx.fillText('Généré via WhatMovie', 40, 100);
+
+  // Statistiques calculées
+  const totalMinutes = watchedMovies.reduce((acc, m) => acc + (m.runtime || 0), 0);
+  const totalHours = Math.floor(totalMinutes / 60);
+
+  const genreCounts = {};
+  watchedMovies.forEach(m => {
+    (m.genres || []).forEach(g => {
+      const name = g.name || g;
+      genreCounts[name] = (genreCounts[name] || 0) + 1;
+    });
+  });
+  const topGenre = Object.entries(genreCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'Non défini';
+
+  // Boîtes de statistiques
+  const drawCard = (x, y, width, height, val, label, color) => {
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.06)';
+    ctx.fillRect(x, y, width, height);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+    ctx.strokeRect(x, y, width, height);
+
+    ctx.fillStyle = color;
+    ctx.font = 'bold 38px sans-serif';
+    ctx.fillText(val, x + 20, y + 50);
+
+    ctx.fillStyle = '#f3f4f6';
+    ctx.font = '14px sans-serif';
+    ctx.fillText(label, x + 20, y + 85);
+  };
+
+  drawCard(40, 140, 340, 110, `${watchedMovies.length}`, 'FILMS VISIONNÉS', '#6366f1');
+  drawCard(420, 140, 340, 110, `${totalHours}h`, 'TEMPS TOTAL PASSÉ', '#6366f1');
+  drawCard(40, 280, 340, 110, `${favorites.length}`, 'FAVORIS ENREGISTRÉS', '#f59e0b');
+  drawCard(420, 280, 340, 110, `${topGenre}`, 'GENRE PRÉFÉRÉ', '#10b981');
+
+  // Téléchargement immédiat
+  const link = document.createElement('a');
+  link.download = 'mon-bilan-cine.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+  showToast("Bilan Ciné téléchargé avec succès !");
+}
+
+// 12. Quiz « Devine le Film »
+function setupQuizListeners() {
+  const quizNextBtn = document.getElementById('quiz-next-btn');
+  if (quizNextBtn) {
+    quizNextBtn.addEventListener('click', loadQuizQuestion);
+  }
+}
+
+async function loadQuizQuestion() {
+  const quizPoster = document.getElementById('quiz-poster');
+  const quizOptions = document.getElementById('quiz-options');
+  const quizFeedback = document.getElementById('quiz-feedback');
+  const quizNextBtn = document.getElementById('quiz-next-btn');
+
+  if (!quizPoster || !quizOptions) return;
+
+  quizPoster.classList.remove('revealed');
+  quizPoster.src = '';
+  quizFeedback.textContent = '';
+  quizNextBtn.style.display = 'none';
+  quizOptions.innerHTML = '<p style="grid-column:1/-1; color:var(--text-secondary);">Chargement de la question...</p>';
+
+  try {
+    const randomPage = Math.floor(Math.random() * 10) + 1;
+    const res = await fetch(`${BASE_URL}/movie/popular?api_key=${API_KEY}&language=fr-FR&page=${randomPage}`);
+    const data = await res.json();
+
+    if (!data.results || data.results.length < 4) return;
+
+    const validMovies = data.results.filter(m => m.poster_path && m.title);
+    const shuffled = validMovies.sort(() => 0.5 - Math.random());
+    currentQuizMovie = shuffled[0];
+
+    const choices = [currentQuizMovie.title];
+    for (let i = 1; choices.length < 4 && i < shuffled.length; i++) {
+      choices.push(shuffled[i].title);
+    }
+
+    choices.sort(() => 0.5 - Math.random());
+
+    quizPoster.src = `${IMAGE_BASE_URL}${currentQuizMovie.poster_path}`;
+
+    quizOptions.innerHTML = '';
+    choices.forEach(title => {
+      const btn = document.createElement('button');
+      btn.className = 'quiz-btn';
+      btn.textContent = title;
+      btn.addEventListener('click', () => handleQuizAnswer(btn, title));
+      quizOptions.appendChild(btn);
+    });
+  } catch (err) {
+    quizOptions.innerHTML = '<p style="grid-column:1/-1; color:var(--text-secondary);">Erreur de chargement du quiz.</p>';
+  }
+}
+
+function handleQuizAnswer(selectedBtn, chosenTitle) {
+  const quizPoster = document.getElementById('quiz-poster');
+  const quizFeedback = document.getElementById('quiz-feedback');
+  const quizNextBtn = document.getElementById('quiz-next-btn');
+  const allBtns = document.querySelectorAll('.quiz-btn');
+
+  allBtns.forEach(btn => btn.disabled = true);
+  quizPoster.classList.add('revealed');
+
+  quizQuestionsCount++;
+
+  if (chosenTitle === currentQuizMovie.title) {
+    selectedBtn.classList.add('correct');
+    quizScore++;
+    quizFeedback.textContent = 'Bravo ! C\'est la bonne réponse !';
+    quizFeedback.style.color = '#10b981';
+  } else {
+    selectedBtn.classList.add('wrong');
+    allBtns.forEach(btn => {
+      if (btn.textContent === currentQuizMovie.title) {
+        btn.classList.add('correct');
+      }
+    });
+    quizFeedback.textContent = `Dommage ! Il s'agissait de "${currentQuizMovie.title}".`;
+    quizFeedback.style.color = '#ef4444';
+  }
+
+  const scoreElem = document.getElementById('quiz-score');
+  if (scoreElem) scoreElem.textContent = `Score : ${quizScore} / ${quizQuestionsCount}`;
+
+  if (quizNextBtn) quizNextBtn.style.display = 'inline-block';
+}
+
+// 13. Badges & Succès
+function checkBadges() {
+  const badgesGrid = document.getElementById('badges-grid');
+  if (!badgesGrid) return;
+
+  badgesGrid.innerHTML = '';
+  BADGES.forEach(badge => {
+    const isUnlocked = badge.condition(watchedMovies, favorites);
+    const card = document.createElement('div');
+    card.className = `badge-card ${isUnlocked ? 'unlocked' : 'locked'}`;
+    card.innerHTML = `
+      <div class="badge-icon">${badge.icon}</div>
+      <div class="badge-title">${badge.title}</div>
+      <div class="badge-desc">${badge.desc}</div>
+      <div class="badge-status">${isUnlocked ? 'Débloqué' : 'Verrouillé'}</div>
+    `;
+    badgesGrid.appendChild(card);
+  });
+}
+
+// 14. Modales & Partage
 if (trailerBtn) {
   trailerBtn.addEventListener('click', () => {
     if (!currentMovie || !currentMovie.videos) return;
@@ -561,7 +866,7 @@ if (modalClose) modalClose.addEventListener('click', closeModal);
 window.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
 
-// 12. Événements Boutons
+// 15. Événements Boutons
 if (proposeBtn) proposeBtn.addEventListener('click', loadRandomMovie);
 if (nextBtn) nextBtn.addEventListener('click', triggerSwipeNext);
 if (favBtn) favBtn.addEventListener('click', toggleFavorite);
@@ -603,7 +908,7 @@ if (searchInput) {
   });
 }
 
-// 13. Onglets & Changements de Vues
+// 16. Onglets & Changements de Vues
 const navButtons = document.querySelectorAll('.nav-btn');
 const tabContents = document.querySelectorAll('.tab-content');
 
@@ -620,6 +925,8 @@ function switchTab(targetId) {
   if (targetId === 'tab-trending') loadTrendingMovies();
   if (targetId === 'tab-favorites') renderFavorites();
   if (targetId === 'tab-history') updateStats();
+  if (targetId === 'tab-quiz' && quizQuestionsCount === 0) loadQuizQuestion();
+  if (targetId === 'tab-badges') checkBadges();
 }
 
 navButtons.forEach(btn => {
