@@ -442,6 +442,29 @@ proposeBtn.addEventListener('click', loadRandomMovie);
 nextBtn.addEventListener('click', triggerSwipeNext);
 favBtn.addEventListener('click', toggleFavorite);
 
+// Fonction de recherche directe de film
+async function searchMovie(query) {
+  const cleanQuery = query.trim();
+  if (!cleanQuery) return;
+
+  try {
+    const res = await fetch(`${BASE_URL}/search/movie?api_key=${API_KEY}&language=fr-FR&query=${encodeURIComponent(cleanQuery)}&page=1`);
+    const data = await res.json();
+
+    if (data.results && data.results.length > 0) {
+      const movie = data.results[0];
+      seenMovies.add(movie.id);
+      await fetchMovieDetails(movie.id);
+      searchDropdown.classList.remove('active');
+    } else {
+      showToast("Aucun film trouvé pour cette recherche.");
+    }
+  } catch (err) {
+    console.error('Erreur lors de la recherche :', err);
+    showToast("Erreur lors de la recherche du film.");
+  }
+}
+
 searchBtn.addEventListener('click', () => {
   const query = searchInput.value.trim();
   if (query) {
