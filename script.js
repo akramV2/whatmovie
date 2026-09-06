@@ -445,12 +445,19 @@ favBtn.addEventListener('click', toggleFavorite);
 searchBtn.addEventListener('click', () => {
   const query = searchInput.value.trim();
   if (query) {
+    searchMovie(query);
     searchDropdown.classList.remove('active');
   }
 });
 
 searchInput.addEventListener('keypress', (e) => {
-  if (e.key === 'Enter') searchDropdown.classList.remove('active');
+  if (e.key === 'Enter') {
+    const query = searchInput.value.trim();
+    if (query) {
+      searchMovie(query);
+      searchDropdown.classList.remove('active');
+    }
+  }
 });
 
 posterContainer.addEventListener('click', () => {
