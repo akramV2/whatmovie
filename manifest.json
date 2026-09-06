@@ -3,14 +3,10 @@
   "name": "WhatMovie - Trouve ton film",
   "icons": [
     {
-      "src": "icon-192.png",
+      "src": "icon.png",
       "type": "image/png",
-      "sizes": "192x192"
-    },
-    {
-      "src": "icon-512.png",
-      "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "1000x1000",
+      "purpose": "any maskable"
     }
   ],
   "start_url": ".",
