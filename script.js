@@ -36,7 +36,6 @@ const modalClose = document.getElementById('modal-close');
 const modalContainer = document.getElementById('modal-content-container');
 const posterContainer = document.getElementById('poster-container');
 const trailerBtn = document.getElementById('trailer-btn');
-const shareBtn = document.getElementById('share-btn');
 
 // Boutons de sauvegarde & bilan
 const exportJsonBtn = document.getElementById('export-json-btn');
@@ -57,17 +56,61 @@ let quizScore = 0;
 let quizQuestionsCount = 0;
 let currentQuizMovie = null;
 
+// Badges & Succès avec icônes Font Awesome
 const badges = [
-  { id: 'first_step', title: 'Premier Pas', icon: 'fa-film', desc: 'Regarder 1 film' },
-  { id: 'movie_buff', title: 'Cinéphile Assidu', icon: 'fa-clapperboard', desc: 'Regarder 10 films' },
-  { id: 'marathon', title: 'Marathonien', icon: 'fa-stopwatch', desc: 'Cumuler 20h de visionnage' },
-  { id: 'classic', title: 'Cinéphile Classique', icon: 'fa-building-columns', desc: "Regarder 5 films d'avant 2000" },
-  { id: 'explorer', title: 'Explorateur', icon: 'fa-globe', desc: 'Découvrir 5 genres différents' },
-  { id: 'collector', title: 'Collectionneur', icon: 'fa-star', desc: 'Enregistrer 10 favoris' }
+  { 
+    id: 'first_step', 
+    title: 'Premier Pas', 
+    icon: 'fa-film', 
+    desc: 'Regarder 1 film',
+    condition: (watched, favs) => watched.length >= 1 
+  },
+  { 
+    id: 'movie_buff', 
+    title: 'Cinéphile Assidu', 
+    icon: 'fa-clapperboard', 
+    desc: 'Regarder 10 films',
+    condition: (watched, favs) => watched.length >= 10 
+  },
+  { 
+    id: 'marathon', 
+    title: 'Marathonien', 
+    icon: 'fa-stopwatch', 
+    desc: 'Cumuler 20h de visionnage',
+    condition: (watched, favs) => {
+      const totalMinutes = watched.reduce((acc, m) => acc + (m.runtime || 0), 0);
+      return totalMinutes >= 1200; // 20h = 1200min
+    } 
+  },
+  { 
+    id: 'classic', 
+    title: 'Cinéphile Classique', 
+    icon: 'fa-building-columns', 
+    desc: "Regarder 5 films d'avant 2000",
+    condition: (watched, favs) => {
+      const classics = watched.filter(m => m.release_date && parseInt(m.release_date.split('-')[0]) < 2000);
+      return classics.length >= 5;
+    }
+  },
+  { 
+    id: 'explorer', 
+    title: 'Explorateur', 
+    icon: 'fa-globe', 
+    desc: 'Découvrir 5 genres différents',
+    condition: (watched, favs) => {
+      const genresSet = new Set();
+      watched.forEach(m => (m.genres || []).forEach(g => genresSet.add(g.name || g)));
+      return genresSet.size >= 5;
+    }
+  },
+  { 
+    id: 'collector', 
+    title: 'Collectionneur', 
+    icon: 'fa-star', 
+    desc: 'Enregistrer 10 favoris',
+    condition: (watched, favs) => favs.length >= 10 
+  }
 ];
-
-// Dans la boucle de rendu HTML :
-// `<i class="fa-solid ${badge.icon} badge-icon"></i>`
 
 // Initialisation
 document.addEventListener('DOMContentLoaded', () => {
@@ -432,7 +475,9 @@ function toggleFavorite() {
 function updateFavButtonState() {
   if (!currentMovie) return;
   const isFav = favorites.some(f => f.id === currentMovie.id);
-  favBtn.textContent = isFav ? '❤️ Dans vos favoris' : '🤍 Ajouter aux favoris';
+  favBtn.innerHTML = isFav 
+    ? '<i class="fa-solid fa-heart" style="color: #ef4444;"></i> Dans vos favoris' 
+    : '<i class="fa-regular fa-heart"></i> Ajouter aux favoris';
 }
 
 function renderFavorites() {
@@ -612,7 +657,7 @@ function generateBilanCine() {
   // Titre principal
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 34px sans-serif';
-  ctx.fillText('🎬 MON BILAN CINÉ', 40, 70);
+  ctx.fillText('MON BILAN CINÉ', 40, 70);
 
   ctx.fillStyle = '#9ca3af';
   ctx.font = '16px sans-serif';
@@ -748,18 +793,18 @@ function handleQuizAnswer(selectedBtn, chosenTitle) {
   if (quizNextBtn) quizNextBtn.style.display = 'inline-block';
 }
 
-// 13. Badges & Succès
+// 13. Badges & Succès avec icônes Font Awesome
 function checkBadges() {
   const badgesGrid = document.getElementById('badges-grid');
   if (!badgesGrid) return;
 
   badgesGrid.innerHTML = '';
-  BADGES.forEach(badge => {
-    const isUnlocked = badge.condition(watchedMovies, favorites);
+  badges.forEach(badge => {
+    const isUnlocked = badge.condition ? badge.condition(watchedMovies, favorites) : false;
     const card = document.createElement('div');
     card.className = `badge-card ${isUnlocked ? 'unlocked' : 'locked'}`;
     card.innerHTML = `
-      <div class="badge-icon">${badge.icon}</div>
+      <i class="fa-solid ${badge.icon} badge-icon"></i>
       <div class="badge-title">${badge.title}</div>
       <div class="badge-desc">${badge.desc}</div>
       <div class="badge-status">${isUnlocked ? 'Débloqué' : 'Verrouillé'}</div>
