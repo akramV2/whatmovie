@@ -81,23 +81,25 @@ header p {
 .nav-bar {
   position: relative;
   width: 100%;
-  max-width: 500px;
-  height: 60px;
+  max-width: 680px;
+  min-height: 60px;
   background: var(--card-bg);
   backdrop-filter: blur(16px);
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
   border-radius: 16px;
   box-shadow: var(--shadow-soft);
   margin: 0 auto 24px auto;
   padding: 4px;
   border: 1px solid var(--border-color);
+  overflow-x: auto;
 }
 
 .nav-btn {
   flex: 1;
-  height: 100%;
+  min-width: 70px;
+  height: 52px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -107,7 +109,7 @@ header p {
   border: none;
   color: var(--text-secondary);
   cursor: pointer;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 500;
   transition: all 0.2s ease;
   border-radius: 12px;
@@ -115,10 +117,10 @@ header p {
 
 /* FIXATION STRICTE DES ICÔNES */
 .nav-btn svg {
-  width: 22px !important;
-  height: 22px !important;
-  min-width: 22px;
-  min-height: 22px;
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px;
+  min-height: 20px;
   display: block;
   fill: currentColor;
 }
@@ -329,6 +331,14 @@ button {
   background: transparent;
   border: 1px solid var(--border-color);
   color: var(--text-color);
+}
+
+/* BARRE D'OUTILS (EXPORTS/IMPORTS) */
+.tools-bar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
 }
 
 /* CARTE FILM */
@@ -577,6 +587,150 @@ button {
   line-height: 24px;
 }
 
+/* QUIZ */
+.quiz-card {
+  background: var(--card-bg);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 24px;
+  max-width: 500px;
+  margin: 0 auto;
+  text-align: center;
+  box-shadow: var(--shadow-soft);
+}
+
+.quiz-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.quiz-score-badge {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: rgba(99, 102, 241, 0.2);
+  color: var(--accent-color);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.quiz-poster {
+  width: 200px;
+  height: 290px;
+  object-fit: cover;
+  border-radius: 12px;
+  filter: blur(20px);
+  transition: filter 0.5s ease;
+  margin: 20px auto;
+  display: block;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+}
+
+.quiz-poster.revealed {
+  filter: blur(0);
+}
+
+.quiz-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.quiz-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quiz-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.quiz-btn.correct {
+  background: #10b981 !important;
+  color: #ffffff !important;
+  border-color: #10b981 !important;
+}
+
+.quiz-btn.wrong {
+  background: #ef4444 !important;
+  color: #ffffff !important;
+  border-color: #ef4444 !important;
+}
+
+.quiz-feedback {
+  margin-top: 14px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  min-height: 24px;
+}
+
+/* BADGES & SUCCÈS */
+.badges-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.badge-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  transition: transform 0.2s ease, opacity 0.3s ease;
+}
+
+.badge-card.locked {
+  opacity: 0.45;
+  filter: grayscale(0.8);
+}
+
+.badge-icon {
+  font-size: 2.5rem;
+}
+
+.badge-title {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.badge-desc {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.badge-status {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 12px;
+  margin-top: auto;
+}
+
+.badge-card.unlocked .badge-status {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+}
+
+.badge-card.locked .badge-status {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+}
+
 /* MODALE ET TOASTS */
 .modal {
   display: none;
@@ -646,6 +800,9 @@ button {
 
 @media (max-width: 650px) {
   .glass-card {
+    grid-template-columns: 1fr;
+  }
+  .quiz-options {
     grid-template-columns: 1fr;
   }
 }
