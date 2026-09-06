@@ -164,7 +164,7 @@ header p {
   flex: 1;
 }
 
-input[type="text"], {
+input[type="text"] {
   width: 100%;
   padding: 12px 16px;
   background: var(--card-bg);
