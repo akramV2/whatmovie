@@ -150,7 +150,9 @@
   <!-- Charger le fichier JavaScript -->
   <script src="script.js"></script>
 
-  <!-- Enregistrement Service Worker -->
+ <!-- Assure-toi que cette ligne est présente avant </body> -->
+  <script src="script.js"></script>
+
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
