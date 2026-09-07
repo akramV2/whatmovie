@@ -655,6 +655,62 @@ button {
   color: var(--accent-color);
 }
 
+/* Espace Admin */
+.admin-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.admin-subtitle {
+  margin: 24px 0 12px;
+  font-size: 1rem;
+  color: var(--text-secondary);
+}
+
+.admin-table-wrapper {
+  background: var(--card-bg);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 10px;
+  overflow-x: auto;
+  box-shadow: var(--shadow-soft);
+  margin-bottom: 8px;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.admin-table th, .admin-table td {
+  text-align: left;
+  padding: 10px 12px;
+  white-space: nowrap;
+}
+
+.admin-table thead th {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.admin-table tbody tr:not(:last-child) td {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.admin-empty {
+  color: var(--text-secondary);
+  padding: 12px;
+  font-size: 0.9rem;
+}
+
 .genre-bar-container {
   display: flex;
   flex-direction: column;
