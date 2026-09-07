@@ -54,6 +54,11 @@ let selectedProviders = [];
 let seenMovies = new Set();
 let searchDebounceTimer = null;
 
+// Espace Admin — seul ce pseudo (insensible à la casse) débloque l'onglet
+const ADMIN_PSEUDO = 'akram';
+const adminNavBtn = document.getElementById('admin-nav-btn');
+const adminRefreshBtn = document.getElementById('admin-refresh-btn');
+
 // État d'authentification et Profil
 let isLoggedIn = JSON.parse(localStorage.getItem('whatmovie_logged_in')) ?? true;
 let userProfile = JSON.parse(localStorage.getItem('whatmovie_user_profile')) || {
@@ -145,6 +150,8 @@ document.addEventListener('DOMContentLoaded', () => {
   setupQuizListeners();
   setupSettingsAndAuth();
   loadUserProfile();
+  setupAdminPanel();
+  logVisite();
 
   const urlParams = new URLSearchParams(window.location.search);
   const movieId = urlParams.get('id');
@@ -711,6 +718,7 @@ function renderEditProfileModalContent() {
       userProfile.email = document.getElementById('modal-email').value || '';
       userProfile.password = document.getElementById('modal-password').value || '';
       localStorage.setItem('whatmovie_user_profile', JSON.stringify(userProfile));
+      syncUtilisateur(userProfile.pseudo);
       loadUserProfile();
       closeModal();
       showToast("Informations personnelles mises à jour !");
@@ -767,6 +775,7 @@ function renderLoginModalContent() {
       localStorage.setItem('whatmovie_logged_in', JSON.stringify(true));
       localStorage.setItem('whatmovie_user_profile', JSON.stringify(userProfile));
 
+      syncUtilisateur(userProfile.pseudo);
       loadUserProfile();
       closeModal();
       showToast(`Connecté en tant que ${userProfile.pseudo} !`);
@@ -799,6 +808,7 @@ function loadUserProfile() {
   }
 
   renderTop4();
+  checkAdminAccess();
 }
 
 function renderTop4() {
@@ -1323,6 +1333,7 @@ function switchTab(targetId) {
   }
   if (targetId === 'tab-quiz' && quizQuestionsCount === 0) loadQuizQuestion();
   if (targetId === 'tab-badges') checkBadges();
+  if (targetId === 'tab-admin') loadAdminPanel();
 }
 
 navButtons.forEach(btn => {
@@ -1361,4 +1372,131 @@ async function loadTrendingMovies() {
   } catch (err) {
     trendingGrid.innerHTML = '<p style="color: var(--text-secondary);">Impossible de charger les tendances.</p>';
   }
+}
+
+// 18. Espace Admin
+function setupAdminPanel() {
+  if (adminRefreshBtn) {
+    adminRefreshBtn.addEventListener('click', loadAdminPanel);
+  }
+}
+
+// Affiche ou masque le bouton "Admin" selon le pseudo connecté.
+// NB : ce contrôle se fait côté navigateur, donc il cache seulement le bouton
+// aux yeux d'un visiteur normal — voir la note de sécurité fournie avec ce fichier.
+function checkAdminAccess() {
+  if (!adminNavBtn) return;
+  const isAdmin = isLoggedIn && (userProfile.pseudo || '').trim().toLowerCase() === ADMIN_PSEUDO;
+  adminNavBtn.style.display = isAdmin ? 'flex' : 'none';
+
+  // Si l'utilisateur courant vient de perdre l'accès admin mais que l'onglet
+  // admin est actif, on le ramène sur l'onglet Découvrir.
+  if (!isAdmin) {
+    const adminTab = document.getElementById('tab-admin');
+    if (adminTab && adminTab.classList.contains('active')) {
+      switchTab('tab-discover');
+    }
+  }
+}
+
+// Enregistre une visite anonyme dans Supabase (table "visites").
+// Échoue silencieusement si la table n'existe pas encore ou si hors-ligne.
+async function logVisite() {
+  if (typeof supabaseClient === 'undefined') return;
+  try {
+    await supabaseClient.from('visites').insert([{
+      pseudo: isLoggedIn ? (userProfile.pseudo || null) : null
+    }]);
+  } catch (err) {
+    console.warn('Suivi de visite indisponible :', err);
+  }
+}
+
+// Crée ou met à jour la ligne de l'utilisateur dans Supabase (table "utilisateurs").
+async function syncUtilisateur(pseudo) {
+  if (typeof supabaseClient === 'undefined') return;
+  const pseudoClean = (pseudo || '').trim().toLowerCase();
+  if (!pseudoClean) return;
+  try {
+    await supabaseClient.from('utilisateurs').upsert(
+      [{ pseudo: pseudoClean }],
+      { onConflict: 'pseudo', ignoreDuplicates: false }
+    );
+  } catch (err) {
+    console.warn('Synchronisation utilisateur impossible :', err);
+  }
+}
+
+async function loadAdminPanel() {
+  // Double vérification avant de charger quoi que ce soit, même si l'onglet
+  // ne devrait être accessible qu'aux admins.
+  const isAdmin = isLoggedIn && (userProfile.pseudo || '').trim().toLowerCase() === ADMIN_PSEUDO;
+  if (!isAdmin || typeof supabaseClient === 'undefined') return;
+
+  const usersStat = document.getElementById('admin-stat-users');
+  const visitsStat = document.getElementById('admin-stat-visits');
+  const visitsTodayStat = document.getElementById('admin-stat-visits-today');
+  const usersTable = document.getElementById('admin-users-table');
+  const visitsTable = document.getElementById('admin-visits-table');
+
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+
+  try {
+    const [
+      { count: userCount },
+      { count: visitCount },
+      { count: visitTodayCount },
+      { data: recentUsers },
+      { data: recentVisits }
+    ] = await Promise.all([
+      supabaseClient.from('utilisateurs').select('*', { count: 'exact', head: true }),
+      supabaseClient.from('visites').select('*', { count: 'exact', head: true }),
+      supabaseClient.from('visites').select('*', { count: 'exact', head: true }).gte('created_at', startOfToday.toISOString()),
+      supabaseClient.from('utilisateurs').select('pseudo, created_at').order('created_at', { ascending: false }).limit(15),
+      supabaseClient.from('visites').select('pseudo, created_at').order('created_at', { ascending: false }).limit(15)
+    ]);
+
+    if (usersStat) usersStat.textContent = userCount ?? '0';
+    if (visitsStat) visitsStat.textContent = visitCount ?? '0';
+    if (visitsTodayStat) visitsTodayStat.textContent = visitTodayCount ?? '0';
+
+    if (usersTable) {
+      if (recentUsers && recentUsers.length > 0) {
+        usersTable.innerHTML = buildAdminTable(
+          ['Pseudo', 'Inscrit le'],
+          recentUsers.map(u => [u.pseudo, formatAdminDate(u.created_at)])
+        );
+      } else {
+        usersTable.innerHTML = '<p class="admin-empty">Aucun utilisateur pour le moment.</p>';
+      }
+    }
+
+    if (visitsTable) {
+      if (recentVisits && recentVisits.length > 0) {
+        visitsTable.innerHTML = buildAdminTable(
+          ['Visiteur', 'Date'],
+          recentVisits.map(v => [v.pseudo || 'Anonyme', formatAdminDate(v.created_at)])
+        );
+      } else {
+        visitsTable.innerHTML = '<p class="admin-empty">Aucune visite enregistrée pour le moment.</p>';
+      }
+    }
+  } catch (err) {
+    console.error('Erreur chargement admin :', err);
+    if (usersTable) usersTable.innerHTML = '<p class="admin-empty">Impossible de charger les données. Vérifie que les tables Supabase existent (voir la note fournie).</p>';
+    if (visitsTable) visitsTable.innerHTML = '';
+  }
+}
+
+function buildAdminTable(headers, rows) {
+  const thead = `<tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>`;
+  const tbody = rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('');
+  return `<table class="admin-table"><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
+}
+
+function formatAdminDate(isoDate) {
+  if (!isoDate) return '—';
+  const d = new Date(isoDate);
+  return d.toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
