@@ -40,6 +40,76 @@ body {
   overflow-x: hidden;
 }
 
+/* ANIMATION D'OUVERTURE / SPLASH SCREEN */
+.splash-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: #0b0f19;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 99999;
+  opacity: 1;
+  transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.6s;
+}
+
+.splash-screen.fade-out {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.splash-content {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  animation: splashPulse 2s ease-in-out infinite alternate;
+}
+
+.splash-icon {
+  font-size: 3.5rem;
+  color: #6366f1;
+  animation: popIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.splash-title {
+  font-size: 3rem;
+  font-weight: 900;
+  letter-spacing: -1px;
+  color: #ffffff;
+  background: linear-gradient(135deg, #ffffff 0%, #6366f1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  opacity: 0;
+  transform: translateY(20px);
+  animation: splashTitleFade 0.8s ease 0.3s forwards;
+}
+
+.splash-title span {
+  color: #6366f1;
+  -webkit-text-fill-color: #6366f1;
+}
+
+@keyframes popIn {
+  0% { transform: scale(0.3); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes splashTitleFade {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes splashPulse {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.03); }
+}
+
 .dynamic-bg {
   position: fixed;
   top: 0;
@@ -614,7 +684,6 @@ button {
   font-size: 0.85rem;
 }
 
-/* Image Quiz rendue nettement moins floue (blur ramené de 12px à 2px) */
 .quiz-poster {
   width: 200px;
   height: 290px;
@@ -737,7 +806,7 @@ button {
   color: var(--text-secondary);
 }
 
-/* MODALE POPUP SUPERPOSÉE AU CENTRE */
+/* MODALE POPUP (MASQUÉE PAR DÉFAUT) */
 .modal, .modal-overlay {
   position: fixed;
   top: 0;
@@ -747,7 +816,7 @@ button {
   background: rgba(0, 0, 0, 0.85);
   backdrop-filter: blur(10px);
   z-index: 9999;
-  display: flex;
+  display: none; /* Correction du bug d'ouverture */
   justify-content: center;
   align-items: center;
 }
@@ -830,6 +899,9 @@ button {
   }
   .quiz-options {
     grid-template-columns: 1fr;
+  }
+  .splash-title {
+    font-size: 2.3rem;
   }
 }
 
