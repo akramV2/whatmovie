@@ -22,6 +22,9 @@
   
   <header>
     <div class="header-top">
+      <button class="btn-icon" id="settings-btn" title="Paramètres & Compte">
+        <i class="fa-solid fa-gear"></i>
+      </button>
       <h1>whatmovie<span class="dot">.</span></h1>
       <button class="btn-icon" id="theme-toggle">Mode Clair</button>
     </div>
@@ -157,35 +160,25 @@
       <div id="favorites-grid" class="favorites-grid"></div>
     </div>
 
-    <!-- ONGLET PROFIL (REMPLACE HISTORIQUE) -->
+    <!-- ONGLET PROFIL -->
     <div id="tab-profile" class="tab-content">
-      <!-- Section Informations du Compte & Photo -->
+      <!-- Aperçu du Compte Actif -->
       <div class="glass-card profile-card-wrapper" style="margin-bottom: 24px;">
         <div class="profile-header">
           <div class="profile-avatar-container">
-            <img id="profile-avatar-preview" src="https://via.placeholder.com/120?text=Avatar" alt="Photo de profil">
-            <label for="profile-pic-input" class="avatar-upload-btn" title="Changer la photo (.jpg)">
-              <i class="fa-solid fa-camera"></i>
-            </label>
-            <input type="file" id="profile-pic-input" accept="image/jpeg, image/png, image/jpg" style="display: none;">
+            <img id="profile-avatar-display" src="https://via.placeholder.com/120?text=Avatar" alt="Photo de profil">
           </div>
-          <div class="profile-info-form">
-            <h2>Mon Profil & Compte</h2>
-            <div class="form-group">
-              <label><i class="fa-solid fa-user"></i> Pseudo :</label>
-              <input type="text" id="profile-pseudo" placeholder="Votre pseudo">
+          <div class="profile-summary-info">
+            <h2 id="profile-display-pseudo">Cinéphile</h2>
+            <p id="profile-display-email" style="color: var(--text-secondary); margin-bottom: 12px;">utilisateur@whatmovie.fr</p>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+              <button class="btn-action" id="open-settings-from-profile-btn">
+                <i class="fa-solid fa-gear"></i> Modifier mes informations
+              </button>
+              <button class="btn-danger" id="logout-btn">
+                <i class="fa-solid fa-right-from-bracket"></i> Se déconnecter
+              </button>
             </div>
-            <div class="form-group">
-              <label><i class="fa-solid fa-envelope"></i> Adresse e-mail :</label>
-              <input type="email" id="profile-email" placeholder="votre.email@exemple.com">
-            </div>
-            <div class="form-group">
-              <label><i class="fa-solid fa-lock"></i> Mot de passe :</label>
-              <input type="password" id="profile-password" placeholder="Mot de passe">
-            </div>
-            <button class="btn-primary" id="save-profile-btn">
-              <i class="fa-solid fa-floppy-disk"></i> Enregistrer le profil
-            </button>
           </div>
         </div>
       </div>
@@ -258,7 +251,7 @@
     </div>
   </main>
 
-  <!-- MODALE (Trailer / Photo / Choix Top 4) -->
+  <!-- MODALE (Trailer / Photo / Choix Top 4 / Réglages Compte) -->
   <div id="modal" class="modal" style="display: none;">
     <div class="modal-content">
       <span id="modal-close" class="modal-close">&times;</span>
