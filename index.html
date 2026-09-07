@@ -57,6 +57,10 @@
       <i class="fa-solid fa-trophy"></i>
       <span>Succès</span>
     </button>
+    <button class="nav-btn" data-target="tab-admin" id="admin-nav-btn" style="display:none;">
+      <i class="fa-solid fa-user-shield"></i>
+      <span>Admin</span>
+    </button>
   </nav>
 
   <main class="content-container">
@@ -249,6 +253,40 @@
       <p style="color: var(--text-secondary); margin-bottom: 16px;">Débloque des trophées au fur et à mesure de tes visionnages.</p>
       <div id="badges-grid" class="badges-grid"></div>
     </div>
+
+    <!-- ONGLET ADMIN (visible uniquement pour le compte admin) -->
+    <div id="tab-admin" class="tab-content">
+      <div class="admin-header">
+        <h2><i class="fa-solid fa-user-shield"></i> Espace Admin</h2>
+        <button class="btn-action" id="admin-refresh-btn"><i class="fa-solid fa-rotate"></i> Actualiser</button>
+      </div>
+      <p style="color: var(--text-secondary); margin-bottom: 16px;">Vue d'ensemble du site — visible uniquement par toi.</p>
+
+      <div class="stats-container">
+        <div class="stat-card">
+          <h3>Utilisateurs inscrits</h3>
+          <div id="admin-stat-users" class="stat-value">–</div>
+        </div>
+        <div class="stat-card">
+          <h3>Visites totales</h3>
+          <div id="admin-stat-visits" class="stat-value">–</div>
+        </div>
+        <div class="stat-card">
+          <h3>Visites aujourd'hui</h3>
+          <div id="admin-stat-visits-today" class="stat-value">–</div>
+        </div>
+      </div>
+
+      <h3 class="admin-subtitle">Derniers utilisateurs inscrits</h3>
+      <div id="admin-users-table" class="admin-table-wrapper">
+        <p class="admin-empty">Chargement...</p>
+      </div>
+
+      <h3 class="admin-subtitle">Dernières visites</h3>
+      <div id="admin-visits-table" class="admin-table-wrapper">
+        <p class="admin-empty">Chargement...</p>
+      </div>
+    </div>
   </main>
 
   <!-- MODALE (Trailer / Photo / Choix Top 4 / Réglages Compte) -->
@@ -262,49 +300,14 @@
   <!-- 1. Bibliothèque Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <!-- 2. Configuration Supabase & Sécurité -->
+  <!-- 2. Configuration Supabase -->
   <script>
     const SUPABASE_URL = 'https://ekyaodlinyrsumxqzgzt.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_UwSN7BNMrDP4Apwy3jtMAw_gWCqO9j1';
-    
-    // Initialisation correcte du client Supabase
+
+    // Initialisation du client Supabase (utilisé pour le suivi des visites,
+    // la synchro des comptes et l'espace admin — voir script.js)
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-    async function inscrire(pseudoSaisi) {
-      const pseudoClean = pseudoSaisi.trim().toLowerCase();
-      
-      const { data, error } = await supabaseClient
-        .from('utilisateurs')
-        .insert([{ pseudo: pseudoClean }]);
-
-      if (error) {
-        alert("Ce pseudo est déjà pris !");
-        return false;
-      }
-      alert("Inscription réussie !");
-      return true;
-    }
-
-    async function verifierAccesAdmin(pseudoUtilisateur) {
-      const pseudoClean = pseudoUtilisateur.trim().toLowerCase();
-
-      if (pseudoClean !== 'akram') {
-        alert("Accès refusé. Seul Akram possède les accès.");
-        return;
-      }
-
-      const { data, error } = await supabaseClient
-        .from('utilisateurs')
-        .select('role')
-        .eq('pseudo', 'akram')
-        .single();
-
-      if (error || !data || data.role !== 'admin') {
-        alert("Accès refusé : compte non autorisé.");
-      } else {
-        alert("Bienvenue sur l'espace admin Akram !");
-      }
-    }
   </script>
 
   <!-- 3. Script principal -->
