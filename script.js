@@ -31,19 +31,20 @@ const favoritesGrid = document.getElementById('favorites-grid');
 const favCountTitle = document.getElementById('fav-count-title');
 
 const themeToggle = document.getElementById('theme-toggle');
+const settingsBtn = document.getElementById('settings-btn');
 const modal = document.getElementById('modal');
 const modalClose = document.getElementById('modal-close');
 const modalContainer = document.getElementById('modal-content-container');
 const posterContainer = document.getElementById('poster-container');
 const trailerBtn = document.getElementById('trailer-btn');
 
-// Boutons profil, sauvegarde & bilan
+// Boutons profil & sauvegarde
 const exportJsonBtn = document.getElementById('export-json-btn');
 const importJsonBtn = document.getElementById('import-json-btn');
 const importFileInput = document.getElementById('import-file-input');
 const generateProfileCardBtn = document.getElementById('generate-profile-card-btn');
-const saveProfileBtn = document.getElementById('save-profile-btn');
-const profilePicInput = document.getElementById('profile-pic-input');
+const openSettingsFromProfileBtn = document.getElementById('open-settings-from-profile-btn');
+const logoutBtn = document.getElementById('logout-btn');
 
 // État de l'application
 let currentMovie = null;
@@ -53,11 +54,12 @@ let selectedProviders = [];
 let seenMovies = new Set();
 let searchDebounceTimer = null;
 
-// État du Profil Utilisateur
+// État d'authentification et Profil
+let isLoggedIn = JSON.parse(localStorage.getItem('whatmovie_logged_in')) ?? true;
 let userProfile = JSON.parse(localStorage.getItem('whatmovie_user_profile')) || {
   pseudo: 'Cinéphile',
   email: 'utilisateur@whatmovie.fr',
-  password: '••••••••',
+  password: 'password123',
   avatar: '',
   top4: [null, null, null, null]
 };
@@ -141,8 +143,9 @@ document.addEventListener('DOMContentLoaded', () => {
   setupProviderButtons();
   setupExportImport();
   setupQuizListeners();
-  setupProfileSystem();
-  
+  setupSettingsAndAuth();
+  loadUserProfile();
+
   const urlParams = new URLSearchParams(window.location.search);
   const movieId = urlParams.get('id');
   if (movieId) {
@@ -600,39 +603,18 @@ function updateStats() {
   }
 }
 
-// 11. GESTION DU PROFIL, TOP 4 & CARTE DE PROFIL
-function setupProfileSystem() {
-  loadUserProfile();
-
-  if (saveProfileBtn) {
-    saveProfileBtn.addEventListener('click', () => {
-      userProfile.pseudo = document.getElementById('profile-pseudo').value || 'Cinéphile';
-      userProfile.email = document.getElementById('profile-email').value || '';
-      userProfile.password = document.getElementById('profile-password').value || '';
-      localStorage.setItem('whatmovie_user_profile', JSON.stringify(userProfile));
-      showToast("Profil mis à jour !");
-    });
+// 11. GESTION DES PARAMÈTRES VIA L'ENGRENAGE ET AUTHENTIFICATION
+function setupSettingsAndAuth() {
+  if (settingsBtn) {
+    settingsBtn.addEventListener('click', openSettingsModal);
   }
 
-  if (profilePicInput) {
-    profilePicInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
+  if (openSettingsFromProfileBtn) {
+    openSettingsFromProfileBtn.addEventListener('click', openSettingsModal);
+  }
 
-      if (!file.type.startsWith('image/')) {
-        showToast("Veuillez choisir un fichier image (.jpg/.png).");
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = function(event) {
-        userProfile.avatar = event.target.result;
-        document.getElementById('profile-avatar-preview').src = userProfile.avatar;
-        localStorage.setItem('whatmovie_user_profile', JSON.stringify(userProfile));
-        showToast("Photo de profil enregistrée !");
-      };
-      reader.readAsDataURL(file);
-    });
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', handleLogout);
   }
 
   if (generateProfileCardBtn) {
@@ -640,14 +622,155 @@ function setupProfileSystem() {
   }
 }
 
-function loadUserProfile() {
-  document.getElementById('profile-pseudo').value = userProfile.pseudo || '';
-  document.getElementById('profile-email').value = userProfile.email || '';
-  document.getElementById('profile-password').value = userProfile.password || '';
+function openSettingsModal() {
+  if (!isLoggedIn) {
+    renderLoginModalContent();
+  } else {
+    renderEditProfileModalContent();
+  }
+  modal.style.display = 'flex';
+}
 
-  const avatarPreview = document.getElementById('profile-avatar-preview');
-  if (avatarPreview) {
-    avatarPreview.src = userProfile.avatar || 'https://via.placeholder.com/120?text=Avatar';
+function renderEditProfileModalContent() {
+  modalContainer.innerHTML = `
+    <div class="modal-profile-form">
+      <h2><i class="fa-solid fa-gear"></i> Paramètres du Compte</h2>
+      <p style="font-size:0.85rem; color:var(--text-secondary); text-align:center; margin-bottom:12px;">Modifiez vos informations personnelles ci-dessous.</p>
+      
+      <div class="modal-avatar-preview-wrapper">
+        <img id="modal-avatar-preview" src="${userProfile.avatar || 'https://via.placeholder.com/100?text=Avatar'}" alt="Avatar">
+        <label for="modal-pic-input" class="avatar-upload-btn" title="Changer l'image">
+          <i class="fa-solid fa-camera"></i>
+        </label>
+        <input type="file" id="modal-pic-input" accept="image/jpeg, image/png, image/jpg" style="display:none;">
+      </div>
+
+      <div class="form-group">
+        <label><i class="fa-solid fa-user"></i> Pseudo :</label>
+        <input type="text" id="modal-pseudo" value="${userProfile.pseudo || ''}">
+      </div>
+
+      <div class="form-group">
+        <label><i class="fa-solid fa-envelope"></i> Adresse e-mail :</label>
+        <input type="email" id="modal-email" value="${userProfile.email || ''}">
+      </div>
+
+      <div class="form-group">
+        <label><i class="fa-solid fa-lock"></i> Mot de passe :</label>
+        <input type="password" id="modal-password" value="${userProfile.password || ''}">
+      </div>
+
+      <button class="btn-primary" id="save-modal-profile-btn" style="margin-top:10px; justify-content:center;">
+        <i class="fa-solid fa-floppy-disk"></i> Enregistrer les modifications
+      </button>
+
+      <button class="btn-danger" id="modal-logout-btn" style="margin-top:6px; justify-content:center;">
+        <i class="fa-solid fa-right-from-bracket"></i> Se déconnecter
+      </button>
+    </div>
+  `;
+
+  const picInput = document.getElementById('modal-pic-input');
+  if (picInput) {
+    picInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (!file.type.startsWith('image/')) {
+        showToast("Veuillez choisir un fichier image (.jpg/.png).");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        userProfile.avatar = event.target.result;
+        document.getElementById('modal-avatar-preview').src = userProfile.avatar;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  document.getElementById('save-modal-profile-btn').addEventListener('click', () => {
+    userProfile.pseudo = document.getElementById('modal-pseudo').value || 'Cinéphile';
+    userProfile.email = document.getElementById('modal-email').value || '';
+    userProfile.password = document.getElementById('modal-password').value || '';
+    localStorage.setItem('whatmovie_user_profile', JSON.stringify(userProfile));
+    loadUserProfile();
+    closeModal();
+    showToast("Informations personnelles mises à jour !");
+  });
+
+  document.getElementById('modal-logout-btn').addEventListener('click', () => {
+    closeModal();
+    handleLogout();
+  });
+}
+
+function renderLoginModalContent() {
+  modalContainer.innerHTML = `
+    <div class="modal-profile-form">
+      <h2><i class="fa-solid fa-user-lock"></i> Connexion / Changement de compte</h2>
+      <p style="font-size:0.85rem; color:var(--text-secondary); text-align:center; margin-bottom:12px;">Veuillez vous connecter pour gérer vos données personnelles.</p>
+
+      <div class="form-group">
+        <label><i class="fa-solid fa-envelope"></i> Adresse e-mail :</label>
+        <input type="email" id="login-email" placeholder="votre.email@exemple.com">
+      </div>
+
+      <div class="form-group">
+        <label><i class="fa-solid fa-lock"></i> Mot de passe :</label>
+        <input type="password" id="login-password" placeholder="Mot de passe">
+      </div>
+
+      <button class="btn-primary" id="login-submit-btn" style="margin-top:10px; justify-content:center;">
+        <i class="fa-solid fa-right-to-bracket"></i> Se connecter
+      </button>
+    </div>
+  `;
+
+  document.getElementById('login-submit-btn').addEventListener('click', () => {
+    const inputEmail = document.getElementById('login-email').value.trim();
+    const inputPassword = document.getElementById('login-password').value.trim();
+
+    if (!inputEmail || !inputPassword) {
+      showToast("Veuillez remplir tous les champs.");
+      return;
+    }
+
+    userProfile.email = inputEmail;
+    userProfile.password = inputPassword;
+    if (!userProfile.pseudo) userProfile.pseudo = inputEmail.split('@')[0];
+
+    isLoggedIn = true;
+    localStorage.setItem('whatmovie_logged_in', JSON.stringify(true));
+    localStorage.setItem('whatmovie_user_profile', JSON.stringify(userProfile));
+
+    loadUserProfile();
+    closeModal();
+    showToast(`Connecté en tant que ${userProfile.pseudo} !`);
+  });
+}
+
+function handleLogout() {
+  isLoggedIn = false;
+  localStorage.setItem('whatmovie_logged_in', JSON.stringify(false));
+  loadUserProfile();
+  showToast("Vous vous êtes déconnecté.");
+}
+
+function loadUserProfile() {
+  const displayPseudo = document.getElementById('profile-display-pseudo');
+  const displayEmail = document.getElementById('profile-display-email');
+  const displayAvatar = document.getElementById('profile-avatar-display');
+
+  if (isLoggedIn) {
+    if (displayPseudo) displayPseudo.textContent = userProfile.pseudo || 'Cinéphile';
+    if (displayEmail) displayEmail.textContent = userProfile.email || 'utilisateur@whatmovie.fr';
+    if (displayAvatar) displayAvatar.src = userProfile.avatar || 'https://via.placeholder.com/120?text=Avatar';
+    if (logoutBtn) logoutBtn.style.display = 'inline-flex';
+  } else {
+    if (displayPseudo) displayPseudo.textContent = 'Non connecté';
+    if (displayEmail) displayEmail.textContent = 'Connectez-vous via l\'engrenage en haut à gauche pour éditer votre profil.';
+    if (displayAvatar) displayAvatar.src = 'https://via.placeholder.com/120?text=Déconnecté';
+    if (logoutBtn) logoutBtn.style.display = 'none';
   }
 
   renderTop4();
@@ -676,6 +799,10 @@ function renderTop4() {
       `;
       slot.querySelector('.remove-top4-btn').addEventListener('click', (e) => {
         e.stopPropagation();
+        if (!isLoggedIn) {
+          showToast("Veuillez vous connecter pour modifier votre Top 4.");
+          return;
+        }
         userProfile.top4[i] = null;
         localStorage.setItem('whatmovie_user_profile', JSON.stringify(userProfile));
         renderTop4();
@@ -688,7 +815,13 @@ function renderTop4() {
           <span>Emplacement ${i + 1}</span>
         </div>
       `;
-      slot.addEventListener('click', () => openTop4Picker(i));
+      slot.addEventListener('click', () => {
+        if (!isLoggedIn) {
+          showToast("Veuillez vous connecter pour modifier votre Top 4.");
+          return;
+        }
+        openTop4Picker(i);
+      });
     }
 
     top4Grid.appendChild(slot);
@@ -736,7 +869,6 @@ function openTop4Picker(slotIndex) {
   modal.style.display = 'flex';
 }
 
-// Fonction d'aide pour charger une image dans Canvas sans bloquer
 function loadImage(src) {
   return new Promise((resolve) => {
     if (!src) return resolve(null);
@@ -748,8 +880,13 @@ function loadImage(src) {
   });
 }
 
-// Génération de la Carte Profil Design
+// Génération de la Carte Profil Image
 async function generateProfileCard() {
+  if (!isLoggedIn) {
+    showToast("Veuillez vous connecter pour générer votre carte profil.");
+    return;
+  }
+
   showToast("Création de votre carte profil...");
 
   const canvas = document.createElement('canvas');
@@ -757,19 +894,16 @@ async function generateProfileCard() {
   canvas.height = 560;
   const ctx = canvas.getContext('2d');
 
-  // Fond dégradé sombre
   const grad = ctx.createLinearGradient(0, 0, 900, 560);
   grad.addColorStop(0, '#0a0a0c');
   grad.addColorStop(1, '#181820');
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, 900, 560);
 
-  // Bordure orange néon
   ctx.strokeStyle = '#ff5e1e';
   ctx.lineWidth = 4;
   ctx.strokeRect(10, 10, 880, 540);
 
-  // En-tête : Branding Logo
   ctx.fillStyle = '#ffffff';
   ctx.font = '800 32px sans-serif';
   ctx.fillText('whatmovie', 40, 55);
@@ -780,7 +914,6 @@ async function generateProfileCard() {
   ctx.font = '600 13px sans-serif';
   ctx.fillText('CARTE CINÉPHILE OFFICIELLE', 660, 50);
 
-  // Avatar circulaire
   const avatarImg = await loadImage(userProfile.avatar || 'https://via.placeholder.com/120');
   ctx.save();
   ctx.beginPath();
@@ -795,14 +928,12 @@ async function generateProfileCard() {
   }
   ctx.restore();
 
-  // Cercle de bordure de l'Avatar
   ctx.strokeStyle = '#ff5e1e';
   ctx.lineWidth = 3;
   ctx.beginPath();
   ctx.arc(90, 135, 45, 0, Math.PI * 2, true);
   ctx.stroke();
 
-  // Pseudo et E-mail
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 26px sans-serif';
   ctx.fillText(userProfile.pseudo || 'Cinéphile', 155, 125);
@@ -811,7 +942,6 @@ async function generateProfileCard() {
   ctx.font = '15px sans-serif';
   ctx.fillText(userProfile.email || 'Membre WhatMovie', 155, 150);
 
-  // Bloc Statistiques
   const totalMinutes = watchedMovies.reduce((acc, m) => acc + (m.runtime || 0), 0);
   const totalHours = Math.floor(totalMinutes / 60);
 
@@ -844,7 +974,6 @@ async function generateProfileCard() {
   drawMetric(450, 195, 190, 65, `${favorites.length}`, 'FAVORIS');
   drawMetric(655, 195, 205, 65, `${topGenre}`, 'GENRE PRÉFÉRÉ');
 
-  // Section TOP 4 FILMS
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 18px sans-serif';
   ctx.fillText('TOP 4 FILMS FAVORIS', 40, 300);
@@ -888,7 +1017,6 @@ async function generateProfileCard() {
     }
   }
 
-  // Téléchargement automatique de l'image
   const link = document.createElement('a');
   link.download = `profil-whatmovie-${userProfile.pseudo || 'user'}.png`;
   link.href = canvas.toDataURL('image/png');
@@ -931,6 +1059,8 @@ function setupExportImport() {
             favorites = parsed.favorites;
             watchedMovies = parsed.watchedMovies;
             if (parsed.profile) userProfile = parsed.profile;
+            isLoggedIn = true;
+            localStorage.setItem('whatmovie_logged_in', JSON.stringify(true));
             localStorage.setItem('whatmovie_favs', JSON.stringify(favorites));
             localStorage.setItem('whatmovie_watched', JSON.stringify(watchedMovies));
             localStorage.setItem('whatmovie_user_profile', JSON.stringify(userProfile));
