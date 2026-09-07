@@ -215,12 +215,14 @@ async function fetchGenres() {
   try {
     const res = await fetch(`${BASE_URL}/genre/movie/list?api_key=${API_KEY}&language=fr-FR`);
     const data = await res.json();
-    data.genres.forEach(g => {
-      const option = document.createElement('option');
-      option.value = g.id;
-      option.textContent = g.name;
-      genreSelect.appendChild(option);
-    });
+    if (genreSelect && data.genres) {
+      data.genres.forEach(g => {
+        const option = document.createElement('option');
+        option.value = g.id;
+        option.textContent = g.name;
+        genreSelect.appendChild(option);
+      });
+    }
   } catch (err) {
     console.error('Erreur genres:', err);
   }
@@ -249,15 +251,15 @@ async function loadRandomMovie() {
   if (spinner) spinner.style.display = 'block';
   
   try {
-    const genre = genreSelect.value;
-    const era = eraSelect.value;
-    const duration = durationSelect.value;
+    const genre = genreSelect ? genreSelect.value : '';
+    const era = eraSelect ? eraSelect.value : '';
+    const duration = durationSelect ? durationSelect.value : '';
 
     let url = `${BASE_URL}/discover/movie?api_key=${API_KEY}&language=fr-FR&sort_by=popularity.desc&include_adult=false&page=${Math.floor(Math.random() * 5) + 1}`;
 
     if (genre) url += `&with_genres=${genre}`;
     
-    const activeProviders = selectedProviders.length > 0 ? selectedProviders.join('|') : providerSelect.value;
+    const activeProviders = selectedProviders.length > 0 ? selectedProviders.join('|') : (providerSelect ? providerSelect.value : '');
     if (activeProviders) {
       url += `&with_watch_providers=${activeProviders}&watch_region=FR`;
     }
@@ -304,8 +306,10 @@ if (searchInput) {
     clearTimeout(searchDebounceTimer);
 
     if (query.length < 2) {
-      searchDropdown.classList.remove('active');
-      searchDropdown.innerHTML = '';
+      if (searchDropdown) {
+        searchDropdown.classList.remove('active');
+        searchDropdown.innerHTML = '';
+      }
       return;
     }
 
@@ -316,6 +320,7 @@ if (searchInput) {
 }
 
 async function fetchSearchSuggestions(query) {
+  if (!searchDropdown) return;
   try {
     const res = await fetch(`${BASE_URL}/search/movie?api_key=${API_KEY}&language=fr-FR&query=${encodeURIComponent(query)}&page=1`);
     const data = await res.json();
@@ -345,7 +350,7 @@ async function fetchSearchSuggestions(query) {
           seenMovies.add(movie.id);
           fetchMovieDetails(movie.id);
           searchDropdown.classList.remove('active');
-          searchInput.value = '';
+          if (searchInput) searchInput.value = '';
         });
 
         searchDropdown.appendChild(item);
@@ -389,75 +394,84 @@ async function fetchMovieDetails(movieId) {
 }
 
 function displayMovie(m) {
+  if (!movieCard) return;
   movieCard.classList.remove('swipe-out');
   movieCard.classList.remove('fade-in');
   void movieCard.offsetWidth;
   movieCard.classList.add('fade-in');
 
-  movieTitle.textContent = m.title;
-  movieSynopsis.textContent = m.overview || "Aucun synopsis disponible.";
-  movieRating.textContent = `${m.vote_average ? m.vote_average.toFixed(1) : 'N/A'} / 10`;
+  if (movieTitle) movieTitle.textContent = m.title;
+  if (movieSynopsis) movieSynopsis.textContent = m.overview || "Aucun synopsis disponible.";
+  if (movieRating) movieRating.textContent = `${m.vote_average ? m.vote_average.toFixed(1) : 'N/A'} / 10`;
 
-  if (m.poster_path) {
-    posterImg.src = `${IMAGE_BASE_URL}${m.poster_path}`;
-    dynamicBg.style.backgroundImage = `url(${IMAGE_BASE_URL}${m.poster_path})`;
-  } else {
-    posterImg.src = 'https://via.placeholder.com/300x450?text=Pas+d%27image';
+  if (posterImg) {
+    if (m.poster_path) {
+      posterImg.src = `${IMAGE_BASE_URL}${m.poster_path}`;
+      if (dynamicBg) dynamicBg.style.backgroundImage = `url(${IMAGE_BASE_URL}${m.poster_path})`;
+    } else {
+      posterImg.src = 'https://via.placeholder.com/300x450?text=Pas+d%27image';
+    }
   }
 
-  movieGenres.innerHTML = '';
-  if (m.genres) {
-    m.genres.forEach(g => {
-      const span = document.createElement('span');
-      span.className = 'tag';
-      span.textContent = g.name;
-      movieGenres.appendChild(span);
-    });
-  }
+  if (movieGenres) {
+    movieGenres.innerHTML = '';
+    if (m.genres) {
+      m.genres.forEach(g => {
+        const span = document.createElement('span');
+        span.className = 'tag';
+        span.textContent = g.name;
+        movieGenres.appendChild(span);
+      });
+    }
 
-  if (m.runtime) {
-    const spanRuntime = document.createElement('span');
-    spanRuntime.className = 'tag';
-    spanRuntime.textContent = `${m.runtime} min`;
-    movieGenres.appendChild(spanRuntime);
+    if (m.runtime) {
+      const spanRuntime = document.createElement('span');
+      spanRuntime.className = 'tag';
+      spanRuntime.textContent = `${m.runtime} min`;
+      movieGenres.appendChild(spanRuntime);
+    }
   }
 
   const director = m.credits?.crew?.find(c => c.job === 'Director');
-  movieDirector.textContent = director ? `Réalisé par : ${director.name}` : '';
+  if (movieDirector) movieDirector.textContent = director ? `Réalisé par : ${director.name}` : '';
 
-  movieCast.innerHTML = '';
-  if (m.credits?.cast) {
-    m.credits.cast.slice(0, 5).forEach(actor => {
-      const item = document.createElement('div');
-      item.className = 'cast-item';
-      const photo = actor.profile_path ? `${IMAGE_BASE_URL}${actor.profile_path}` : 'https://via.placeholder.com/45';
-      item.innerHTML = `
-        <img src="${photo}" alt="${actor.name}" class="cast-avatar">
-        <span class="cast-name">${actor.name}</span>
-      `;
-      movieCast.appendChild(item);
-    });
+  if (movieCast) {
+    movieCast.innerHTML = '';
+    if (m.credits?.cast) {
+      m.credits.cast.slice(0, 5).forEach(actor => {
+        const item = document.createElement('div');
+        item.className = 'cast-item';
+        const photo = actor.profile_path ? `${IMAGE_BASE_URL}${actor.profile_path}` : 'https://via.placeholder.com/45';
+        item.innerHTML = `
+          <img src="${photo}" alt="${actor.name}" class="cast-avatar">
+          <span class="cast-name">${actor.name}</span>
+        `;
+        movieCast.appendChild(item);
+      });
+    }
   }
 
-  movieProviders.innerHTML = '';
-  const flatrate = m.providers?.flatrate;
-  if (flatrate && flatrate.length > 0) {
-    flatrate.forEach(p => {
-      const link = document.createElement('a');
-      link.href = `https://www.google.com/search?q=${encodeURIComponent(m.title + ' streaming ' + p.provider_name)}`;
-      link.target = '_blank';
-      link.title = `Regarder sur ${p.provider_name}`;
+  if (movieProviders) {
+    movieProviders.innerHTML = '';
+    const flatrate = m.providers?.flatrate;
+    if (flatrate && flatrate.length > 0) {
+      flatrate.forEach(p => {
+        const link = document.createElement('a');
+        link.href = `https://www.google.com/search?q=${encodeURIComponent(m.title + ' streaming ' + p.provider_name)}`;
+        link.target = '_blank';
+        link.title = `Regarder sur ${p.provider_name}`;
 
-      const img = document.createElement('img');
-      img.src = `${IMAGE_BASE_URL}${p.logo_path}`;
-      img.alt = p.provider_name;
-      img.className = 'provider-logo';
+        const img = document.createElement('img');
+        img.src = `${IMAGE_BASE_URL}${p.logo_path}`;
+        img.alt = p.provider_name;
+        img.className = 'provider-logo';
 
-      link.appendChild(img);
-      movieProviders.appendChild(link);
-    });
-  } else {
-    movieProviders.textContent = 'Non disponible en streaming FR';
+        link.appendChild(img);
+        movieProviders.appendChild(link);
+      });
+    } else {
+      movieProviders.textContent = 'Non disponible en streaming FR';
+    }
   }
 
   updateFavButtonState();
@@ -467,7 +481,7 @@ function triggerSwipeNext() {
   if (currentMovie) {
     markAsWatched(currentMovie);
   }
-  movieCard.classList.add('swipe-out');
+  if (movieCard) movieCard.classList.add('swipe-out');
   setTimeout(() => {
     loadRandomMovie();
   }, 300);
@@ -495,7 +509,7 @@ function toggleFavorite() {
 }
 
 function updateFavButtonState() {
-  if (!currentMovie) return;
+  if (!currentMovie || !favBtn) return;
   const isFav = favorites.some(f => f.id === currentMovie.id);
   favBtn.innerHTML = isFav 
     ? '<i class="fa-solid fa-heart" style="color: #ef4444;"></i> Dans vos favoris' 
@@ -623,6 +637,7 @@ function setupSettingsAndAuth() {
 }
 
 function openSettingsModal() {
+  if (!modal || !modalContainer) return;
   if (!isLoggedIn) {
     renderLoginModalContent();
   } else {
@@ -682,26 +697,33 @@ function renderEditProfileModalContent() {
       const reader = new FileReader();
       reader.onload = function(event) {
         userProfile.avatar = event.target.result;
-        document.getElementById('modal-avatar-preview').src = userProfile.avatar;
+        const prevImg = document.getElementById('modal-avatar-preview');
+        if (prevImg) prevImg.src = userProfile.avatar;
       };
       reader.readAsDataURL(file);
     });
   }
 
-  document.getElementById('save-modal-profile-btn').addEventListener('click', () => {
-    userProfile.pseudo = document.getElementById('modal-pseudo').value || 'Cinéphile';
-    userProfile.email = document.getElementById('modal-email').value || '';
-    userProfile.password = document.getElementById('modal-password').value || '';
-    localStorage.setItem('whatmovie_user_profile', JSON.stringify(userProfile));
-    loadUserProfile();
-    closeModal();
-    showToast("Informations personnelles mises à jour !");
-  });
+  const saveBtn = document.getElementById('save-modal-profile-btn');
+  if (saveBtn) {
+    saveBtn.addEventListener('click', () => {
+      userProfile.pseudo = document.getElementById('modal-pseudo').value || 'Cinéphile';
+      userProfile.email = document.getElementById('modal-email').value || '';
+      userProfile.password = document.getElementById('modal-password').value || '';
+      localStorage.setItem('whatmovie_user_profile', JSON.stringify(userProfile));
+      loadUserProfile();
+      closeModal();
+      showToast("Informations personnelles mises à jour !");
+    });
+  }
 
-  document.getElementById('modal-logout-btn').addEventListener('click', () => {
-    closeModal();
-    handleLogout();
-  });
+  const modalLogoutBtn = document.getElementById('modal-logout-btn');
+  if (modalLogoutBtn) {
+    modalLogoutBtn.addEventListener('click', () => {
+      closeModal();
+      handleLogout();
+    });
+  }
 }
 
 function renderLoginModalContent() {
@@ -726,27 +748,30 @@ function renderLoginModalContent() {
     </div>
   `;
 
-  document.getElementById('login-submit-btn').addEventListener('click', () => {
-    const inputEmail = document.getElementById('login-email').value.trim();
-    const inputPassword = document.getElementById('login-password').value.trim();
+  const loginBtn = document.getElementById('login-submit-btn');
+  if (loginBtn) {
+    loginBtn.addEventListener('click', () => {
+      const inputEmail = document.getElementById('login-email').value.trim();
+      const inputPassword = document.getElementById('login-password').value.trim();
 
-    if (!inputEmail || !inputPassword) {
-      showToast("Veuillez remplir tous les champs.");
-      return;
-    }
+      if (!inputEmail || !inputPassword) {
+        showToast("Veuillez remplir tous les champs.");
+        return;
+      }
 
-    userProfile.email = inputEmail;
-    userProfile.password = inputPassword;
-    if (!userProfile.pseudo) userProfile.pseudo = inputEmail.split('@')[0];
+      userProfile.email = inputEmail;
+      userProfile.password = inputPassword;
+      if (!userProfile.pseudo) userProfile.pseudo = inputEmail.split('@')[0];
 
-    isLoggedIn = true;
-    localStorage.setItem('whatmovie_logged_in', JSON.stringify(true));
-    localStorage.setItem('whatmovie_user_profile', JSON.stringify(userProfile));
+      isLoggedIn = true;
+      localStorage.setItem('whatmovie_logged_in', JSON.stringify(true));
+      localStorage.setItem('whatmovie_user_profile', JSON.stringify(userProfile));
 
-    loadUserProfile();
-    closeModal();
-    showToast(`Connecté en tant que ${userProfile.pseudo} !`);
-  });
+      loadUserProfile();
+      closeModal();
+      showToast(`Connecté en tant que ${userProfile.pseudo} !`);
+    });
+  }
 }
 
 function handleLogout() {
@@ -829,6 +854,8 @@ function renderTop4() {
 }
 
 function openTop4Picker(slotIndex) {
+  if (!modal || !modalContainer) return;
+
   const pool = [...favorites, ...watchedMovies];
   const uniquePool = Array.from(new Map(pool.map(m => [m.id, m])).values());
 
@@ -861,7 +888,7 @@ function openTop4Picker(slotIndex) {
       localStorage.setItem('whatmovie_user_profile', JSON.stringify(userProfile));
       renderTop4();
       closeModal();
-      showToast(`" ${m.title} " ajouté au Top 4 !`);
+      showToast(`"${m.title}" ajouté au Top 4 !`);
     });
     pickerGrid.appendChild(card);
   });
@@ -1099,8 +1126,8 @@ async function loadQuizQuestion() {
 
   quizPoster.classList.remove('revealed');
   quizPoster.src = '';
-  quizFeedback.textContent = '';
-  quizNextBtn.style.display = 'none';
+  if (quizFeedback) quizFeedback.textContent = '';
+  if (quizNextBtn) quizNextBtn.style.display = 'none';
   quizOptions.innerHTML = '<p style="grid-column:1/-1; color:var(--text-secondary);">Chargement de la question...</p>';
 
   try {
@@ -1143,15 +1170,17 @@ function handleQuizAnswer(selectedBtn, chosenTitle) {
   const allBtns = document.querySelectorAll('.quiz-btn');
 
   allBtns.forEach(btn => btn.disabled = true);
-  quizPoster.classList.add('revealed');
+  if (quizPoster) quizPoster.classList.add('revealed');
 
   quizQuestionsCount++;
 
   if (chosenTitle === currentQuizMovie.title) {
     selectedBtn.classList.add('correct');
     quizScore++;
-    quizFeedback.textContent = 'Bravo ! C\'est la bonne réponse !';
-    quizFeedback.style.color = '#10b981';
+    if (quizFeedback) {
+      quizFeedback.textContent = 'Bravo ! C\'est la bonne réponse !';
+      quizFeedback.style.color = '#10b981';
+    }
   } else {
     selectedBtn.classList.add('wrong');
     allBtns.forEach(btn => {
@@ -1159,8 +1188,10 @@ function handleQuizAnswer(selectedBtn, chosenTitle) {
         btn.classList.add('correct');
       }
     });
-    quizFeedback.textContent = `Dommage ! Il s'agissait de "${currentQuizMovie.title}".`;
-    quizFeedback.style.color = '#ef4444';
+    if (quizFeedback) {
+      quizFeedback.textContent = `Dommage ! Il s'agissait de "${currentQuizMovie.title}".`;
+      quizFeedback.style.color = '#ef4444';
+    }
   }
 
   const scoreElem = document.getElementById('quiz-score');
@@ -1195,7 +1226,7 @@ if (trailerBtn) {
     if (!currentMovie || !currentMovie.videos) return;
     const trailer = currentMovie.videos.find(v => v.type === 'Trailer' && v.site === 'YouTube') || currentMovie.videos[0];
     
-    if (trailer) {
+    if (trailer && modal && modalContainer) {
       modalContainer.innerHTML = `<iframe src="https://www.youtube.com/embed/${trailer.key}?autoplay=1" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
       modal.style.display = 'flex';
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1207,7 +1238,7 @@ if (trailerBtn) {
 
 if (posterContainer) {
   posterContainer.addEventListener('click', () => {
-    if (posterImg && posterImg.src) {
+    if (posterImg && posterImg.src && modal && modalContainer) {
       modalContainer.innerHTML = `<img src="${posterImg.src}" alt="Affiche grand format">`;
       modal.style.display = 'flex';
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1218,7 +1249,7 @@ if (posterContainer) {
 function closeModal() {
   if (modal) {
     modal.style.display = 'none';
-    modalContainer.innerHTML = '';
+    if (modalContainer) modalContainer.innerHTML = '';
   }
 }
 
@@ -1254,8 +1285,10 @@ async function searchMovie(query) {
 
 if (searchBtn) {
   searchBtn.addEventListener('click', () => {
-    const query = searchInput.value.trim();
-    if (query) searchMovie(query);
+    if (searchInput) {
+      const query = searchInput.value.trim();
+      if (query) searchMovie(query);
+    }
   });
 }
 
