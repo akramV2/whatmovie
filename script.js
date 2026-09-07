@@ -56,7 +56,7 @@ let quizScore = 0;
 let quizQuestionsCount = 0;
 let currentQuizMovie = null;
 
-// Badges & Succès avec icônes Font Awesome
+// Badges & Succès
 const badges = [
   { 
     id: 'first_step', 
@@ -79,7 +79,7 @@ const badges = [
     desc: 'Cumuler 20h de visionnage',
     condition: (watched, favs) => {
       const totalMinutes = watched.reduce((acc, m) => acc + (m.runtime || 0), 0);
-      return totalMinutes >= 1200; // 20h = 1200min
+      return totalMinutes >= 1200;
     } 
   },
   { 
@@ -114,6 +114,14 @@ const badges = [
 
 // Initialisation
 document.addEventListener('DOMContentLoaded', () => {
+  // Masquer l'animation Splash Screen d'ouverture
+  const splash = document.getElementById('splash-screen');
+  if (splash) {
+    setTimeout(() => {
+      splash.classList.add('fade-out');
+    }, 1800);
+  }
+
   initTheme();
   fetchGenres();
   renderFavorites();
@@ -642,19 +650,16 @@ function generateBilanCine() {
   canvas.height = 480;
   const ctx = canvas.getContext('2d');
 
-  // Arrière-plan dégradé
   const grad = ctx.createLinearGradient(0, 0, 800, 480);
   grad.addColorStop(0, '#0b0f19');
   grad.addColorStop(1, '#1e1b4b');
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, 800, 480);
 
-  // Cadre néon
   ctx.strokeStyle = '#6366f1';
   ctx.lineWidth = 4;
   ctx.strokeRect(16, 16, 768, 448);
 
-  // Titre principal
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 34px sans-serif';
   ctx.fillText('MON BILAN CINÉ', 40, 70);
@@ -663,7 +668,6 @@ function generateBilanCine() {
   ctx.font = '16px sans-serif';
   ctx.fillText('Généré via WhatMovie', 40, 100);
 
-  // Statistiques calculées
   const totalMinutes = watchedMovies.reduce((acc, m) => acc + (m.runtime || 0), 0);
   const totalHours = Math.floor(totalMinutes / 60);
 
@@ -676,7 +680,6 @@ function generateBilanCine() {
   });
   const topGenre = Object.entries(genreCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'Non défini';
 
-  // Boîtes de statistiques
   const drawCard = (x, y, width, height, val, label, color) => {
     ctx.fillStyle = 'rgba(255, 255, 255, 0.06)';
     ctx.fillRect(x, y, width, height);
@@ -697,7 +700,6 @@ function generateBilanCine() {
   drawCard(40, 280, 340, 110, `${favorites.length}`, 'FAVORIS ENREGISTRÉS', '#f59e0b');
   drawCard(420, 280, 340, 110, `${topGenre}`, 'GENRE PRÉFÉRÉ', '#10b981');
 
-  // Téléchargement immédiat
   const link = document.createElement('a');
   link.download = 'mon-bilan-cine.png';
   link.href = canvas.toDataURL('image/png');
@@ -793,7 +795,7 @@ function handleQuizAnswer(selectedBtn, chosenTitle) {
   if (quizNextBtn) quizNextBtn.style.display = 'inline-block';
 }
 
-// 13. Badges & Succès avec icônes Font Awesome
+// 13. Badges & Succès
 function checkBadges() {
   const badgesGrid = document.getElementById('badges-grid');
   if (!badgesGrid) return;
@@ -813,9 +815,7 @@ function checkBadges() {
   });
 }
 
-// 14. Modales & Partage (Affiche et Bande-annonce)
-
-// Ouverture de la bande-annonce
+// 14. Modales (Trailer / Photo)
 if (trailerBtn) {
   trailerBtn.addEventListener('click', () => {
     if (!currentMovie || !currentMovie.videos) return;
@@ -831,7 +831,6 @@ if (trailerBtn) {
   });
 }
 
-// Ouverture de l'affiche en grand
 if (posterContainer) {
   posterContainer.addEventListener('click', () => {
     if (posterImg && posterImg.src) {
@@ -842,11 +841,10 @@ if (posterContainer) {
   });
 }
 
-// Fermeture de la modale (Bouton X, Clic arrière-plan, Touche Échap)
 function closeModal() {
   if (modal) {
     modal.style.display = 'none';
-    modalContainer.innerHTML = ''; // Coupe le son de la vidéo
+    modalContainer.innerHTML = '';
   }
 }
 
