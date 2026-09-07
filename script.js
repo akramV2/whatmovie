@@ -37,11 +37,13 @@ const modalContainer = document.getElementById('modal-content-container');
 const posterContainer = document.getElementById('poster-container');
 const trailerBtn = document.getElementById('trailer-btn');
 
-// Boutons de sauvegarde & bilan
+// Boutons profil, sauvegarde & bilan
 const exportJsonBtn = document.getElementById('export-json-btn');
 const importJsonBtn = document.getElementById('import-json-btn');
 const importFileInput = document.getElementById('import-file-input');
-const generateBilanBtn = document.getElementById('generate-bilan-btn');
+const generateProfileCardBtn = document.getElementById('generate-profile-card-btn');
+const saveProfileBtn = document.getElementById('save-profile-btn');
+const profilePicInput = document.getElementById('profile-pic-input');
 
 // État de l'application
 let currentMovie = null;
@@ -50,6 +52,15 @@ let watchedMovies = JSON.parse(localStorage.getItem('whatmovie_watched')) || [];
 let selectedProviders = [];
 let seenMovies = new Set();
 let searchDebounceTimer = null;
+
+// État du Profil Utilisateur
+let userProfile = JSON.parse(localStorage.getItem('whatmovie_user_profile')) || {
+  pseudo: 'Cinéphile',
+  email: 'utilisateur@whatmovie.fr',
+  password: '••••••••',
+  avatar: '',
+  top4: [null, null, null, null]
+};
 
 // État du Quiz
 let quizScore = 0;
@@ -114,7 +125,6 @@ const badges = [
 
 // Initialisation
 document.addEventListener('DOMContentLoaded', () => {
-  // Masquer l'animation Splash Screen d'ouverture
   const splash = document.getElementById('splash-screen');
   if (splash) {
     setTimeout(() => {
@@ -131,6 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupProviderButtons();
   setupExportImport();
   setupQuizListeners();
+  setupProfileSystem();
   
   const urlParams = new URLSearchParams(window.location.search);
   const movieId = urlParams.get('id');
@@ -589,11 +600,308 @@ function updateStats() {
   }
 }
 
-// 11. Sauvegarde, Import / Export & Bilan Ciné
+// 11. GESTION DU PROFIL, TOP 4 & CARTE DE PROFIL
+function setupProfileSystem() {
+  loadUserProfile();
+
+  if (saveProfileBtn) {
+    saveProfileBtn.addEventListener('click', () => {
+      userProfile.pseudo = document.getElementById('profile-pseudo').value || 'Cinéphile';
+      userProfile.email = document.getElementById('profile-email').value || '';
+      userProfile.password = document.getElementById('profile-password').value || '';
+      localStorage.setItem('whatmovie_user_profile', JSON.stringify(userProfile));
+      showToast("Profil mis à jour !");
+    });
+  }
+
+  if (profilePicInput) {
+    profilePicInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      if (!file.type.startsWith('image/')) {
+        showToast("Veuillez choisir un fichier image (.jpg/.png).");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        userProfile.avatar = event.target.result;
+        document.getElementById('profile-avatar-preview').src = userProfile.avatar;
+        localStorage.setItem('whatmovie_user_profile', JSON.stringify(userProfile));
+        showToast("Photo de profil enregistrée !");
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  if (generateProfileCardBtn) {
+    generateProfileCardBtn.addEventListener('click', generateProfileCard);
+  }
+}
+
+function loadUserProfile() {
+  document.getElementById('profile-pseudo').value = userProfile.pseudo || '';
+  document.getElementById('profile-email').value = userProfile.email || '';
+  document.getElementById('profile-password').value = userProfile.password || '';
+
+  const avatarPreview = document.getElementById('profile-avatar-preview');
+  if (avatarPreview) {
+    avatarPreview.src = userProfile.avatar || 'https://via.placeholder.com/120?text=Avatar';
+  }
+
+  renderTop4();
+}
+
+function renderTop4() {
+  const top4Grid = document.getElementById('top4-grid');
+  if (!top4Grid) return;
+
+  if (!userProfile.top4 || !Array.isArray(userProfile.top4)) {
+    userProfile.top4 = [null, null, null, null];
+  }
+
+  top4Grid.innerHTML = '';
+
+  for (let i = 0; i < 4; i++) {
+    const movie = userProfile.top4[i];
+    const slot = document.createElement('div');
+    slot.className = `top4-slot ${movie ? 'filled' : ''}`;
+
+    if (movie) {
+      slot.innerHTML = `
+        <button class="remove-top4-btn" title="Retirer">&times;</button>
+        <img src="${movie.poster_path ? IMAGE_BASE_URL + movie.poster_path : 'https://via.placeholder.com/150'}" alt="${movie.title}">
+        <div class="top4-title-overlay">${movie.title}</div>
+      `;
+      slot.querySelector('.remove-top4-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        userProfile.top4[i] = null;
+        localStorage.setItem('whatmovie_user_profile', JSON.stringify(userProfile));
+        renderTop4();
+        showToast("Film retiré du Top 4.");
+      });
+    } else {
+      slot.innerHTML = `
+        <div class="slot-placeholder">
+          <i class="fa-solid fa-plus-circle"></i>
+          <span>Emplacement ${i + 1}</span>
+        </div>
+      `;
+      slot.addEventListener('click', () => openTop4Picker(i));
+    }
+
+    top4Grid.appendChild(slot);
+  }
+}
+
+function openTop4Picker(slotIndex) {
+  const pool = [...favorites, ...watchedMovies];
+  const uniquePool = Array.from(new Map(pool.map(m => [m.id, m])).values());
+
+  if (uniquePool.length === 0) {
+    showToast("Ajoutez d'abord des films à vos favoris ou vus pour garnir votre Top 4.");
+    return;
+  }
+
+  modalContainer.innerHTML = `
+    <div style="width:100%; max-height:75vh; overflow-y:auto; padding:10px;">
+      <h3 style="margin-bottom:16px; text-align:center;">Choisir un film pour l'emplacement ${slotIndex + 1}</h3>
+      <div class="favorites-grid" id="top4-picker-grid"></div>
+    </div>
+  `;
+
+  const pickerGrid = document.getElementById('top4-picker-grid');
+  uniquePool.forEach(m => {
+    const card = document.createElement('div');
+    card.className = 'fav-card';
+    card.innerHTML = `
+      <img src="${m.poster_path ? IMAGE_BASE_URL + m.poster_path : 'https://via.placeholder.com/150'}" alt="${m.title}">
+      <p>${m.title}</p>
+    `;
+    card.addEventListener('click', () => {
+      userProfile.top4[slotIndex] = {
+        id: m.id,
+        title: m.title,
+        poster_path: m.poster_path
+      };
+      localStorage.setItem('whatmovie_user_profile', JSON.stringify(userProfile));
+      renderTop4();
+      closeModal();
+      showToast(`" ${m.title} " ajouté au Top 4 !`);
+    });
+    pickerGrid.appendChild(card);
+  });
+
+  modal.style.display = 'flex';
+}
+
+// Fonction d'aide pour charger une image dans Canvas sans bloquer
+function loadImage(src) {
+  return new Promise((resolve) => {
+    if (!src) return resolve(null);
+    const img = new Image();
+    img.crossOrigin = 'Anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+}
+
+// Génération de la Carte Profil Design
+async function generateProfileCard() {
+  showToast("Création de votre carte profil...");
+
+  const canvas = document.createElement('canvas');
+  canvas.width = 900;
+  canvas.height = 560;
+  const ctx = canvas.getContext('2d');
+
+  // Fond dégradé sombre
+  const grad = ctx.createLinearGradient(0, 0, 900, 560);
+  grad.addColorStop(0, '#0a0a0c');
+  grad.addColorStop(1, '#181820');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 900, 560);
+
+  // Bordure orange néon
+  ctx.strokeStyle = '#ff5e1e';
+  ctx.lineWidth = 4;
+  ctx.strokeRect(10, 10, 880, 540);
+
+  // En-tête : Branding Logo
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '800 32px sans-serif';
+  ctx.fillText('whatmovie', 40, 55);
+  ctx.fillStyle = '#ff5e1e';
+  ctx.fillText('.', 198, 55);
+
+  ctx.fillStyle = '#8e8e93';
+  ctx.font = '600 13px sans-serif';
+  ctx.fillText('CARTE CINÉPHILE OFFICIELLE', 660, 50);
+
+  // Avatar circulaire
+  const avatarImg = await loadImage(userProfile.avatar || 'https://via.placeholder.com/120');
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(90, 135, 45, 0, Math.PI * 2, true);
+  ctx.closePath();
+  ctx.clip();
+  if (avatarImg) {
+    ctx.drawImage(avatarImg, 45, 90, 90, 90);
+  } else {
+    ctx.fillStyle = '#232329';
+    ctx.fillRect(45, 90, 90, 90);
+  }
+  ctx.restore();
+
+  // Cercle de bordure de l'Avatar
+  ctx.strokeStyle = '#ff5e1e';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(90, 135, 45, 0, Math.PI * 2, true);
+  ctx.stroke();
+
+  // Pseudo et E-mail
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 26px sans-serif';
+  ctx.fillText(userProfile.pseudo || 'Cinéphile', 155, 125);
+
+  ctx.fillStyle = '#8e8e93';
+  ctx.font = '15px sans-serif';
+  ctx.fillText(userProfile.email || 'Membre WhatMovie', 155, 150);
+
+  // Bloc Statistiques
+  const totalMinutes = watchedMovies.reduce((acc, m) => acc + (m.runtime || 0), 0);
+  const totalHours = Math.floor(totalMinutes / 60);
+
+  const genreCounts = {};
+  watchedMovies.forEach(m => {
+    (m.genres || []).forEach(g => {
+      const name = g.name || g;
+      genreCounts[name] = (genreCounts[name] || 0) + 1;
+    });
+  });
+  const topGenre = Object.entries(genreCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'Aucun';
+
+  const drawMetric = (x, y, w, h, val, label) => {
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+    ctx.strokeRect(x, y, w, h);
+
+    ctx.fillStyle = '#ff5e1e';
+    ctx.font = 'bold 22px sans-serif';
+    ctx.fillText(val, x + 15, y + 32);
+
+    ctx.fillStyle = '#8e8e93';
+    ctx.font = '12px sans-serif';
+    ctx.fillText(label, x + 15, y + 54);
+  };
+
+  drawMetric(40, 195, 190, 65, `${watchedMovies.length}`, 'FILMS VUS');
+  drawMetric(245, 195, 190, 65, `${totalHours}h`, 'VISIONNAGE');
+  drawMetric(450, 195, 190, 65, `${favorites.length}`, 'FAVORIS');
+  drawMetric(655, 195, 205, 65, `${topGenre}`, 'GENRE PRÉFÉRÉ');
+
+  // Section TOP 4 FILMS
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 18px sans-serif';
+  ctx.fillText('TOP 4 FILMS FAVORIS', 40, 300);
+
+  const top4List = userProfile.top4 || [];
+  const posterWidth = 180;
+  const posterHeight = 200;
+  const gap = 25;
+
+  for (let i = 0; i < 4; i++) {
+    const x = 40 + i * (posterWidth + gap);
+    const y = 315;
+
+    const movie = top4List[i];
+    if (movie && movie.poster_path) {
+      const posterUrl = `${IMAGE_BASE_URL}${movie.poster_path}`;
+      const img = await loadImage(posterUrl);
+      if (img) {
+        ctx.drawImage(img, x, y, posterWidth, posterHeight);
+      } else {
+        ctx.fillStyle = '#232329';
+        ctx.fillRect(x, y, posterWidth, posterHeight);
+      }
+    } else {
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
+      ctx.fillRect(x, y, posterWidth, posterHeight);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+      ctx.strokeRect(x, y, posterWidth, posterHeight);
+
+      ctx.fillStyle = '#8e8e93';
+      ctx.font = 'bold 24px sans-serif';
+      ctx.fillText(`#${i + 1}`, x + 75, y + 105);
+    }
+
+    if (movie && movie.title) {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+      ctx.fillRect(x, y + posterHeight - 30, posterWidth, 30);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '12px sans-serif';
+      ctx.fillText(movie.title.length > 20 ? movie.title.substring(0, 18) + '...' : movie.title, x + 8, y + posterHeight - 10);
+    }
+  }
+
+  // Téléchargement automatique de l'image
+  const link = document.createElement('a');
+  link.download = `profil-whatmovie-${userProfile.pseudo || 'user'}.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+  showToast("Carte profil téléchargée avec succès !");
+}
+
+// 12. Sauvegarde & Import JSON
 function setupExportImport() {
   if (exportJsonBtn) {
     exportJsonBtn.addEventListener('click', () => {
       const data = {
+        profile: userProfile,
         favorites: favorites,
         watchedMovies: watchedMovies,
         exportDate: new Date().toISOString()
@@ -622,10 +930,13 @@ function setupExportImport() {
           if (Array.isArray(parsed.favorites) && Array.isArray(parsed.watchedMovies)) {
             favorites = parsed.favorites;
             watchedMovies = parsed.watchedMovies;
+            if (parsed.profile) userProfile = parsed.profile;
             localStorage.setItem('whatmovie_favs', JSON.stringify(favorites));
             localStorage.setItem('whatmovie_watched', JSON.stringify(watchedMovies));
+            localStorage.setItem('whatmovie_user_profile', JSON.stringify(userProfile));
             renderFavorites();
             updateStats();
+            loadUserProfile();
             checkBadges();
             showToast("Données importées avec succès !");
           } else {
@@ -638,76 +949,9 @@ function setupExportImport() {
       reader.readAsText(file);
     });
   }
-
-  if (generateBilanBtn) {
-    generateBilanBtn.addEventListener('click', generateBilanCine);
-  }
 }
 
-function generateBilanCine() {
-  const canvas = document.createElement('canvas');
-  canvas.width = 800;
-  canvas.height = 480;
-  const ctx = canvas.getContext('2d');
-
-  const grad = ctx.createLinearGradient(0, 0, 800, 480);
-  grad.addColorStop(0, '#0b0f19');
-  grad.addColorStop(1, '#1e1b4b');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, 800, 480);
-
-  ctx.strokeStyle = '#6366f1';
-  ctx.lineWidth = 4;
-  ctx.strokeRect(16, 16, 768, 448);
-
-  ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 34px sans-serif';
-  ctx.fillText('MON BILAN CINÉ', 40, 70);
-
-  ctx.fillStyle = '#9ca3af';
-  ctx.font = '16px sans-serif';
-  ctx.fillText('Généré via WhatMovie', 40, 100);
-
-  const totalMinutes = watchedMovies.reduce((acc, m) => acc + (m.runtime || 0), 0);
-  const totalHours = Math.floor(totalMinutes / 60);
-
-  const genreCounts = {};
-  watchedMovies.forEach(m => {
-    (m.genres || []).forEach(g => {
-      const name = g.name || g;
-      genreCounts[name] = (genreCounts[name] || 0) + 1;
-    });
-  });
-  const topGenre = Object.entries(genreCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'Non défini';
-
-  const drawCard = (x, y, width, height, val, label, color) => {
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.06)';
-    ctx.fillRect(x, y, width, height);
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-    ctx.strokeRect(x, y, width, height);
-
-    ctx.fillStyle = color;
-    ctx.font = 'bold 38px sans-serif';
-    ctx.fillText(val, x + 20, y + 50);
-
-    ctx.fillStyle = '#f3f4f6';
-    ctx.font = '14px sans-serif';
-    ctx.fillText(label, x + 20, y + 85);
-  };
-
-  drawCard(40, 140, 340, 110, `${watchedMovies.length}`, 'FILMS VISIONNÉS', '#6366f1');
-  drawCard(420, 140, 340, 110, `${totalHours}h`, 'TEMPS TOTAL PASSÉ', '#6366f1');
-  drawCard(40, 280, 340, 110, `${favorites.length}`, 'FAVORIS ENREGISTRÉS', '#f59e0b');
-  drawCard(420, 280, 340, 110, `${topGenre}`, 'GENRE PRÉFÉRÉ', '#10b981');
-
-  const link = document.createElement('a');
-  link.download = 'mon-bilan-cine.png';
-  link.href = canvas.toDataURL('image/png');
-  link.click();
-  showToast("Bilan Ciné téléchargé avec succès !");
-}
-
-// 12. Quiz « Devine le Film »
+// 13. Quiz « Devine le Film »
 function setupQuizListeners() {
   const quizNextBtn = document.getElementById('quiz-next-btn');
   if (quizNextBtn) {
@@ -795,7 +1039,7 @@ function handleQuizAnswer(selectedBtn, chosenTitle) {
   if (quizNextBtn) quizNextBtn.style.display = 'inline-block';
 }
 
-// 13. Badges & Succès
+// 14. Badges & Succès
 function checkBadges() {
   const badgesGrid = document.getElementById('badges-grid');
   if (!badgesGrid) return;
@@ -815,7 +1059,7 @@ function checkBadges() {
   });
 }
 
-// 14. Modales (Trailer / Photo)
+// 15. Modales (Trailer / Photo)
 if (trailerBtn) {
   trailerBtn.addEventListener('click', () => {
     if (!currentMovie || !currentMovie.videos) return;
@@ -852,7 +1096,7 @@ if (modalClose) modalClose.addEventListener('click', closeModal);
 window.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
 
-// 15. Événements Boutons
+// 16. Événements Boutons
 if (proposeBtn) proposeBtn.addEventListener('click', loadRandomMovie);
 if (nextBtn) nextBtn.addEventListener('click', triggerSwipeNext);
 if (favBtn) favBtn.addEventListener('click', toggleFavorite);
@@ -894,7 +1138,7 @@ if (searchInput) {
   });
 }
 
-// 16. Onglets & Changements de Vues
+// 17. Onglets & Changements de Vues
 const navButtons = document.querySelectorAll('.nav-btn');
 const tabContents = document.querySelectorAll('.tab-content');
 
@@ -910,7 +1154,10 @@ function switchTab(targetId) {
 
   if (targetId === 'tab-trending') loadTrendingMovies();
   if (targetId === 'tab-favorites') renderFavorites();
-  if (targetId === 'tab-history') updateStats();
+  if (targetId === 'tab-profile') {
+    updateStats();
+    loadUserProfile();
+  }
   if (targetId === 'tab-quiz' && quizQuestionsCount === 0) loadQuizQuestion();
   if (targetId === 'tab-badges') checkBadges();
 }
