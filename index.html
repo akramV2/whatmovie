@@ -9,6 +9,14 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
+  <!-- Animation Splash Screen d'ouverture -->
+  <div id="splash-screen" class="splash-screen">
+    <div class="splash-content">
+      <i class="fa-solid fa-clapperboard splash-icon"></i>
+      <h1 class="splash-title">WhatMovie<span>.</span></h1>
+    </div>
+  </div>
+
   <div class="dynamic-bg" id="dynamic-bg"></div>
   <div id="spinner" class="spinner" style="display: none;"></div>
   
@@ -213,7 +221,7 @@
   </main>
 
   <!-- MODALE (Trailer / Photo) -->
-  <div id="modal" class="modal">
+  <div id="modal" class="modal" style="display: none;">
     <div class="modal-content">
       <span id="modal-close" class="modal-close">&times;</span>
       <div id="modal-content-container"></div>
