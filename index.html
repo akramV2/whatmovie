@@ -262,53 +262,52 @@
   <!-- 1. Bibliothèque Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <!-- 2. Ton code de configuration et de sécurité -->
+  <!-- 2. Configuration Supabase & Sécurité -->
   <script>
-const SUPABASE_URL = 'https://ekyaodlinyrsumxqzgzt.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_UwSN7BNMrDP4Apwy3jtMAw_gWCqO9j1';
+    const SUPABASE_URL = 'https://ekyaodlinyrsumxqzgzt.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_UwSN7BNMrDP4Apwy3jtMAw_gWCqO9j1';
+    
+    // Initialisation correcte du client Supabase
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// On nomme la variable clientSupabase pour éviter le conflit avec l'objet global supabase du CDN
-const clientSupabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    async function inscrire(pseudoSaisi) {
+      const pseudoClean = pseudoSaisi.trim().toLowerCase();
+      
+      const { data, error } = await supabaseClient
+        .from('utilisateurs')
+        .insert([{ pseudo: pseudoClean }]);
 
-// Fonction pour inscrire un utilisateur (pseudo unique)
-async function inscrire(pseudoSaisi) {
-  const pseudoClean = pseudoSaisi.trim().toLowerCase();
-  
-  const { data, error } = await clientSupabase
-    .from('utilisateurs')
-    .insert([{ pseudo: pseudoClean }]);
+      if (error) {
+        alert("Ce pseudo est déjà pris !");
+        return false;
+      }
+      alert("Inscription réussie !");
+      return true;
+    }
 
-  if (error) {
-    alert("Ce pseudo est déjà pris !");
-    return false;
-  }
-  alert("Inscription réussie !");
-  return true;
-}
+    async function verifierAccesAdmin(pseudoUtilisateur) {
+      const pseudoClean = pseudoUtilisateur.trim().toLowerCase();
 
-// Fonction pour contrôler l'accès à l'espace admin
-async function verifierAccesAdmin(pseudoUtilisateur) {
-  const pseudoClean = pseudoUtilisateur.trim().toLowerCase();
+      if (pseudoClean !== 'akram') {
+        alert("Accès refusé. Seul Akram possède les accès.");
+        return;
+      }
 
-  // Seul le pseudo akram a le droit de passer
-  if (pseudoClean !== 'akram') {
-    alert("Accès refusé. Seul Akram possède les accès.");
-    return;
-  }
+      const { data, error } = await supabaseClient
+        .from('utilisateurs')
+        .select('role')
+        .eq('pseudo', 'akram')
+        .single();
 
-  // Vérification du rôle en base de données
-  const { data, error } = await clientSupabase
-    .from('utilisateurs')
-    .select('role')
-    .eq('pseudo', 'akram')
-    .single();
-
-  if (error || !data || data.role !== 'admin') {
-    alert("Accès refusé : compte non autorisé.");
-  } else {
-    alert("Bienvenue sur l'espace admin Akram !");
-  }
-}
+      if (error || !data || data.role !== 'admin') {
+        alert("Accès refusé : compte non autorisé.");
+      } else {
+        alert("Bienvenue sur l'espace admin Akram !");
+      }
+    }
   </script>
+
+  <!-- 3. Script principal -->
+  <script src="script.js"></script>
 </body>
 </html>
