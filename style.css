@@ -1,12 +1,17 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
 :root {
-  --bg-color: #0b0f19;
-  --card-bg: rgba(22, 27, 38, 0.85);
-  --border-color: rgba(255, 255, 255, 0.08);
-  --text-color: #f3f4f6;
-  --text-secondary: #9ca3af;
-  --accent-color: #6366f1;
-  --accent-hover: #4f46e5;
-  --shadow-soft: 0 15px 35px rgba(0, 0, 0, 0.4);
+  --font-main: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --bg-color: #0a0a0c;
+  --card-bg: rgba(20, 20, 23, 0.85);
+  --bg-card-hover: #1c1c21;
+  --border-color: #232329;
+  --text-color: #ffffff;
+  --text-secondary: #8e8e93;
+  --accent-color: #ff5e1e;
+  --accent-hover: #e04b0f;
+  --accent-gradient: linear-gradient(135deg, #ff6b2b 0%, #e03e11 50%, #0a0a0c 100%);
+  --shadow-soft: 0 15px 35px rgba(0, 0, 0, 0.6);
 }
 
 [data-theme="light"] {
@@ -15,8 +20,8 @@
   --border-color: rgba(0, 0, 0, 0.08);
   --text-color: #0f172a;
   --text-secondary: #64748b;
-  --accent-color: #4f46e5;
-  --accent-hover: #4338ca;
+  --accent-color: #ff5e1e;
+  --accent-hover: #e04b0f;
   --shadow-soft: 0 15px 35px rgba(0, 0, 0, 0.06);
 }
 
@@ -27,7 +32,7 @@
 }
 
 body {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-main);
   background-color: var(--bg-color);
   color: var(--text-color);
   min-height: 100vh;
@@ -40,6 +45,12 @@ body {
   overflow-x: hidden;
 }
 
+h1, h2, h3, .logo {
+  font-family: var(--font-main);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
 /* ANIMATION D'OUVERTURE / SPLASH SCREEN */
 .splash-screen {
   position: fixed;
@@ -47,7 +58,7 @@ body {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-color: #0b0f19;
+  background-color: #0a0a0c;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -73,7 +84,7 @@ body {
 
 .splash-icon {
   font-size: 3.5rem;
-  color: #6366f1;
+  color: var(--accent-color);
   animation: popIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
@@ -82,7 +93,7 @@ body {
   font-weight: 900;
   letter-spacing: -1px;
   color: #ffffff;
-  background: linear-gradient(135deg, #ffffff 0%, #6366f1 100%);
+  background: linear-gradient(135deg, #ffffff 0%, var(--accent-color) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   opacity: 0;
@@ -91,8 +102,8 @@ body {
 }
 
 .splash-title span {
-  color: #6366f1;
-  -webkit-text-fill-color: #6366f1;
+  color: var(--accent-color);
+  -webkit-text-fill-color: var(--accent-color);
 }
 
 @keyframes popIn {
@@ -158,10 +169,10 @@ header p {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-radius: 16px;
+  border-radius: 99px;
   box-shadow: var(--shadow-soft);
   margin: 0 auto 24px auto;
-  padding: 4px;
+  padding: 6px;
   border: 1px solid var(--border-color);
   overflow-x: auto;
 }
@@ -169,7 +180,7 @@ header p {
 .nav-btn {
   flex: 1;
   min-width: 70px;
-  height: 52px;
+  height: 48px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -180,9 +191,9 @@ header p {
   color: var(--text-secondary);
   cursor: pointer;
   font-size: 0.72rem;
-  font-weight: 500;
+  font-weight: 600;
   transition: all 0.2s ease;
-  border-radius: 12px;
+  border-radius: 99px;
 }
 
 .nav-btn svg, .nav-btn i {
@@ -198,7 +209,7 @@ header p {
 .nav-btn.active {
   color: #fff;
   background: var(--accent-color);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .content-container {
@@ -229,13 +240,14 @@ header p {
 
 input[type="text"] {
   width: 100%;
-  padding: 12px 16px;
+  padding: 14px 18px;
   background: var(--card-bg);
   backdrop-filter: blur(12px);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: 99px;
   color: var(--text-color);
   font-size: 0.9rem;
+  font-family: var(--font-main);
 }
 
 input[type="text"]:focus, select:focus {
@@ -251,7 +263,7 @@ input[type="text"]:focus, select:focus {
   background: var(--card-bg);
   backdrop-filter: blur(20px);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: 16px;
   box-shadow: var(--shadow-soft);
   max-height: 320px;
   overflow-y: auto;
@@ -273,7 +285,7 @@ input[type="text"]:focus, select:focus {
 }
 
 .search-item:hover {
-  background-color: rgba(255, 255, 255, 0.08);
+  background-color: var(--bg-card-hover);
 }
 
 .search-item img {
@@ -307,13 +319,14 @@ input[type="text"]:focus, select:focus {
 
 select {
   width: 100%;
-  padding: 10px 12px;
+  padding: 12px 14px;
   background: var(--card-bg);
   backdrop-filter: blur(12px);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: 99px;
   color: var(--text-color);
   font-size: 0.85rem;
+  font-family: var(--font-main);
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
@@ -321,8 +334,8 @@ select {
 }
 
 select option {
-  background-color: #161b26;
-  color: #f3f4f6;
+  background-color: #141417;
+  color: #ffffff;
 }
 
 /* FILTRES STREAMING */
@@ -338,18 +351,19 @@ select option {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 14px;
-  border-radius: 20px;
+  padding: 8px 16px;
+  border-radius: 99px;
   border: 1px solid var(--border-color);
   background: var(--card-bg);
   color: var(--text-secondary);
   font-size: 0.85rem;
+  font-weight: 600;
   cursor: pointer;
 }
 
 .provider-btn.active {
   border-color: var(--accent-color);
-  background: rgba(99, 102, 241, 0.2);
+  background: rgba(255, 94, 30, 0.2);
   color: var(--text-color);
 }
 
@@ -358,16 +372,16 @@ select option {
   height: 20px;
   object-fit: contain;
   border-radius: 4px;
-  object-fit: contain;
 }
 
 /* BOUTONS */
 button {
+  font-family: var(--font-main);
   cursor: pointer;
-  border-radius: 12px;
+  border-radius: 99px;
   border: 1px solid var(--border-color);
-  padding: 12px 18px;
-  font-weight: 600;
+  padding: 12px 20px;
+  font-weight: 700;
   font-size: 0.9rem;
   transition: all 0.2s ease;
   display: inline-flex;
@@ -376,9 +390,13 @@ button {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--accent-color), var(--accent-hover));
+  background: var(--accent-color);
   color: #ffffff;
   border: none;
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
 }
 
 .btn-action {
@@ -386,10 +404,14 @@ button {
   color: var(--text-color);
 }
 
+.btn-action:hover {
+  background: var(--bg-card-hover);
+}
+
 .btn-icon {
   background: var(--card-bg);
   color: var(--text-color);
-  padding: 8px 14px;
+  padding: 8px 16px;
   font-size: 0.8rem;
 }
 
@@ -412,7 +434,7 @@ button {
   background: var(--card-bg);
   backdrop-filter: blur(20px);
   border: 1px solid var(--border-color);
-  border-radius: 20px;
+  border-radius: 24px;
   padding: 24px;
   box-shadow: var(--shadow-soft);
   display: grid;
@@ -437,7 +459,7 @@ button {
 .poster-container img {
   width: 100%;
   max-height: 360px;
-  border-radius: 12px;
+  border-radius: 16px;
   object-fit: cover;
 }
 
@@ -469,9 +491,10 @@ button {
 .tag {
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid var(--border-color);
-  padding: 6px 12px;
-  border-radius: 20px;
+  padding: 6px 14px;
+  border-radius: 99px;
   font-size: 0.8rem;
+  font-weight: 600;
 }
 
 .providers-section {
@@ -539,8 +562,8 @@ button {
   color: #f59e0b;
   border: 1px solid rgba(245, 158, 11, 0.3);
   font-weight: 700;
-  padding: 4px 10px;
-  border-radius: 8px;
+  padding: 6px 12px;
+  border-radius: 99px;
 }
 
 /* HISTORIQUE & STATS */
@@ -555,7 +578,7 @@ button {
   background: var(--card-bg);
   backdrop-filter: blur(16px);
   border: 1px solid var(--border-color);
-  border-radius: 16px;
+  border-radius: 20px;
   padding: 20px;
   text-align: center;
 }
@@ -618,7 +641,7 @@ button {
   position: relative;
   background: var(--card-bg);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: 16px;
   padding: 10px;
   text-align: center;
   cursor: pointer;
@@ -627,12 +650,13 @@ button {
 .fav-card img {
   width: 100%;
   height: 170px;
-  border-radius: 8px;
+  border-radius: 10px;
   object-fit: cover;
 }
 
 .fav-card p {
   font-size: 0.8rem;
+  font-weight: 600;
   margin-top: 8px;
   white-space: nowrap;
   overflow: hidden;
@@ -660,7 +684,7 @@ button {
   background: var(--card-bg);
   backdrop-filter: blur(15px);
   border: 1px solid var(--border-color);
-  border-radius: 20px;
+  border-radius: 24px;
   padding: 24px;
   max-width: 500px;
   margin: 0 auto;
@@ -677,9 +701,9 @@ button {
 .quiz-score-badge {
   display: inline-block;
   margin-top: 12px;
-  padding: 4px 12px;
-  border-radius: 20px;
-  background: rgba(99, 102, 241, 0.2);
+  padding: 6px 16px;
+  border-radius: 99px;
+  background: rgba(255, 94, 30, 0.15);
   color: var(--accent-color);
   font-weight: 700;
   font-size: 0.85rem;
@@ -689,12 +713,12 @@ button {
   width: 200px;
   height: 290px;
   object-fit: cover;
-  border-radius: 12px;
-  filter: blur(5px);
+  border-radius: 16px;
+  filter: blur(15px); /* Flou augmenté */
   transition: filter 0.5s ease;
   margin: 20px auto;
   display: block;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.4);
 }
 
 .quiz-poster.revealed {
@@ -713,7 +737,7 @@ button {
   border: 1px solid var(--border-color);
   color: var(--text-color);
   padding: 12px;
-  border-radius: 10px;
+  border-radius: 99px;
   font-size: 0.85rem;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -721,7 +745,7 @@ button {
 }
 
 .quiz-btn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .quiz-btn.correct {
@@ -753,7 +777,7 @@ button {
 .badge-card {
   background: var(--card-bg);
   border: 1px solid var(--border-color);
-  border-radius: 16px;
+  border-radius: 20px;
   padding: 20px;
   display: flex;
   flex-direction: column;
@@ -792,8 +816,8 @@ button {
 .badge-status {
   font-size: 0.75rem;
   font-weight: 600;
-  padding: 4px 10px;
-  border-radius: 12px;
+  padding: 4px 12px;
+  border-radius: 99px;
   margin-top: auto;
 }
 
@@ -807,7 +831,7 @@ button {
   color: var(--text-secondary);
 }
 
-/* MODALE POPUP (MASQUÉE PAR DÉFAUT) */
+/* MODALE POPUP */
 .modal, .modal-overlay {
   position: fixed;
   top: 0;
@@ -817,7 +841,7 @@ button {
   background: rgba(0, 0, 0, 0.85);
   backdrop-filter: blur(10px);
   z-index: 9999;
-  display: none; /* Correction du bug d'ouverture */
+  display: none;
   justify-content: center;
   align-items: center;
 }
@@ -833,7 +857,7 @@ button {
   max-height: 90vh;
   background: var(--card-bg);
   border: 1px solid var(--border-color);
-  border-radius: 16px;
+  border-radius: 24px;
   padding: 20px;
   display: flex;
   justify-content: center;
@@ -863,7 +887,7 @@ button {
   width: 100%;
   height: 420px;
   border: none;
-  border-radius: 8px;
+  border-radius: 12px;
 }
 
 #modal-content-container img, #modal-content img {
@@ -871,7 +895,7 @@ button {
   max-height: 75vh;
   display: block;
   margin: 0 auto;
-  border-radius: 8px;
+  border-radius: 12px;
   object-fit: contain;
 }
 
@@ -887,9 +911,10 @@ button {
   background: var(--accent-color);
   color: #fff;
   padding: 12px 20px;
-  border-radius: 10px;
+  border-radius: 99px;
   box-shadow: var(--shadow-soft);
   font-size: 0.9rem;
+  font-weight: 600;
   margin-top: 8px;
   animation: slideUpFade 0.3s ease;
 }
