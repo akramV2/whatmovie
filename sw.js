@@ -1,4 +1,4 @@
-const CACHE_NAME = 'whatmovie-v11';
+const CACHE_NAME = 'whatmovie-v12';
 const ASSETS = [
   './',
   './index.html',
