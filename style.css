@@ -37,8 +37,7 @@
 [data-theme="light"] select,
 [data-theme="light"] .provider-btn,
 [data-theme="light"] .btn-action,
-[data-theme="light"] .btn-icon,
-[data-theme="light"] .quiz-btn {
+[data-theme="light"] .btn-icon {
   background: #ffffff;
   border-color: #e2e8f0;
   color: #0f172a;
@@ -727,7 +726,7 @@ button {
   justify-content: center;
 }
 
-/* QUIZ */
+/* QUIZ (FLOU RÉDUIT & BOUTONS CORRIGÉS) */
 .quiz-card {
   background: var(--card-bg);
   backdrop-filter: blur(15px);
@@ -762,11 +761,11 @@ button {
   height: 290px;
   object-fit: cover;
   border-radius: 16px;
-  filter: blur(15px);
+  filter: blur(8px);
   transition: filter 0.5s ease;
   margin: 20px auto;
   display: block;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
 }
 
 .quiz-poster.revealed {
@@ -780,21 +779,43 @@ button {
   margin-top: 16px;
 }
 
+/* Boutons Sombre (Par défaut) */
 .quiz-btn {
+  background: rgba(255, 255, 255, 0.08);
   border: 1px solid var(--border-color);
-  color: var(--text-color);
-  padding: 12px;
+  color: #ffffff !important;
+  padding: 14px 16px;
   border-radius: 99px;
   font-size: 0.85rem;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
   justify-content: center;
+  text-align: center;
 }
 
 .quiz-btn:hover:not(:disabled) {
-  background: var(--bg-card-hover);
+  background: rgba(255, 255, 255, 0.18);
+  border-color: var(--accent-color);
+  color: #ffffff !important;
 }
 
+/* Boutons Mode Clair */
+[data-theme="light"] .quiz-btn {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .quiz-btn:hover:not(:disabled) {
+  background: #f1f5f9;
+  border-color: var(--accent-color);
+  color: #0f172a !important;
+}
+
+/* Réponses Vrai / Faux */
 .quiz-btn.correct {
   background: #10b981 !important;
   color: #ffffff !important;
