@@ -259,6 +259,55 @@
     </div>
   </div>
 
-  <script src="script.js"></script>
+  <!-- 1. Bibliothèque Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- 2. Ton code de configuration et de sécurité -->
+  <script>
+    const SUPABASE_URL = 'https://ekyaodlinyrsumxqzgzt.supabase.co';
+    const SUPABASE_KEY = 'COLLE_TA_CLE_PUBLISHABLE_ICI'; // Remplace par ta clé sb_publishable_...
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // Fonction pour inscrire un utilisateur (pseudo unique)
+    async function inscrire(pseudoSaisi) {
+      const pseudoClean = pseudoSaisi.trim().toLowerCase();
+      
+      const { data, error } = await supabase
+        .from('utilisateurs')
+        .insert([{ pseudo: pseudoClean }]);
+
+      if (error) {
+        alert("Ce pseudo est déjà pris !");
+        return false;
+      }
+      alert("Inscription réussie !");
+      return true;
+    }
+
+    // Fonction pour contrôler l'accès à l'espace admin
+    async function verifierAccesAdmin(pseudoUtilisateur) {
+      const pseudoClean = pseudoUtilisateur.trim().toLowerCase();
+
+      // Seul le pseudo akram a le droit de passer
+      if (pseudoClean !== 'akram') {
+        alert("Accès refusé. Seul Akram possède les accès.");
+        return;
+      }
+
+      // Vérification du rôle en base de données
+      const { data, error } = await supabase
+        .from('utilisateurs')
+        .select('role')
+        .eq('pseudo', 'akram')
+        .single();
+
+      if (error || !data || data.role !== 'admin') {
+        alert("Accès refusé : compte non autorisé.");
+      } else {
+        alert("Bienvenue sur l'espace admin Akram !");
+        // Place ici le code pour afficher ton onglet/page admin
+      }
+    }
+  </script>
 </body>
 </html>
