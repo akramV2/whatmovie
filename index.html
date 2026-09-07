@@ -42,9 +42,9 @@
       <i class="fa-solid fa-heart"></i>
       <span>Favoris</span>
     </button>
-    <button class="nav-btn" data-target="tab-history">
-      <i class="fa-solid fa-clock-rotate-left"></i>
-      <span>Historique</span>
+    <button class="nav-btn" data-target="tab-profile">
+      <i class="fa-solid fa-user"></i>
+      <span>Profil</span>
     </button>
     <button class="nav-btn" data-target="tab-quiz">
       <i class="fa-solid fa-gamepad"></i>
@@ -93,18 +93,18 @@
         <button class="btn-primary" id="propose-btn">Proposer un film</button>
       </div>
 
-    <!-- Boutons Filtres Streaming -->
-<div class="provider-filters">
-  <button class="provider-btn" data-provider="8">
-    <img src="https://api.iconify.design/logos:netflix-icon.svg" alt="Netflix"> Netflix
-  </button>
-  <button class="provider-btn" data-provider="119">
-    <img src="https://img.icons8.com/color/48/amazon-prime-video.png" alt="Prime Video"> Prime
-  </button>
-<button class="provider-btn" data-provider="337">
-  <img src="https://i.pinimg.com/736x/a8/cb/de/a8cbdef0355ad508eb90b6b6143a0fa1.jpg" alt="Disney+"> Disney+
-</button>
-</div>
+      <!-- Boutons Filtres Streaming -->
+      <div class="provider-filters">
+        <button class="provider-btn" data-provider="8">
+          <img src="https://api.iconify.design/logos:netflix-icon.svg" alt="Netflix"> Netflix
+        </button>
+        <button class="provider-btn" data-provider="119">
+          <img src="https://img.icons8.com/color/48/amazon-prime-video.png" alt="Prime Video"> Prime
+        </button>
+        <button class="provider-btn" data-provider="337">
+          <img src="https://i.pinimg.com/736x/a8/cb/de/a8cbdef0355ad508eb90b6b6143a0fa1.jpg" alt="Disney+"> Disney+
+        </button>
+      </div>
 
       <!-- Carte du Film -->
       <div class="movie-card-wrapper">
@@ -157,21 +157,63 @@
       <div id="favorites-grid" class="favorites-grid"></div>
     </div>
 
-    <!-- ONGLET HISTORIQUE & STATS -->
-    <div id="tab-history" class="tab-content">
+    <!-- ONGLET PROFIL (REMPLACE HISTORIQUE) -->
+    <div id="tab-profile" class="tab-content">
+      <!-- Section Informations du Compte & Photo -->
+      <div class="glass-card profile-card-wrapper" style="margin-bottom: 24px;">
+        <div class="profile-header">
+          <div class="profile-avatar-container">
+            <img id="profile-avatar-preview" src="https://via.placeholder.com/120?text=Avatar" alt="Photo de profil">
+            <label for="profile-pic-input" class="avatar-upload-btn" title="Changer la photo (.jpg)">
+              <i class="fa-solid fa-camera"></i>
+            </label>
+            <input type="file" id="profile-pic-input" accept="image/jpeg, image/png, image/jpg" style="display: none;">
+          </div>
+          <div class="profile-info-form">
+            <h2>Mon Profil & Compte</h2>
+            <div class="form-group">
+              <label><i class="fa-solid fa-user"></i> Pseudo :</label>
+              <input type="text" id="profile-pseudo" placeholder="Votre pseudo">
+            </div>
+            <div class="form-group">
+              <label><i class="fa-solid fa-envelope"></i> Adresse e-mail :</label>
+              <input type="email" id="profile-email" placeholder="votre.email@exemple.com">
+            </div>
+            <div class="form-group">
+              <label><i class="fa-solid fa-lock"></i> Mot de passe :</label>
+              <input type="password" id="profile-password" placeholder="Mot de passe">
+            </div>
+            <button class="btn-primary" id="save-profile-btn">
+              <i class="fa-solid fa-floppy-disk"></i> Enregistrer le profil
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section Top 4 Films Favoris -->
+      <div class="profile-section" style="margin-bottom: 24px;">
+        <div class="section-title-row">
+          <h2><i class="fa-solid fa-star" style="color: var(--accent-color);"></i> Mon Top 4 Films Favoris</h2>
+          <p style="font-size: 0.85rem; color: var(--text-secondary);">Sélectionnez vos 4 films préférés pour votre carte profil</p>
+        </div>
+        <div id="top4-grid" class="top4-grid"></div>
+      </div>
+
+      <!-- Barre d'outils et Exportation carte -->
       <div class="tools-bar">
-        <button class="btn-primary" id="export-json-btn">
+        <button class="btn-primary" id="generate-profile-card-btn">
+          <i class="fa-solid fa-id-card"></i> Télécharger Ma Carte Profil (Image)
+        </button>
+        <button class="btn-action" id="export-json-btn">
           <i class="fa-solid fa-floppy-disk"></i> Sauvegarder (JSON)
         </button>
         <button class="btn-action" id="import-json-btn">
           <i class="fa-solid fa-file-import"></i> Importer (JSON)
         </button>
         <input type="file" id="import-file-input" accept=".json" style="display: none;">
-        <button class="btn-action" id="generate-bilan-btn">
-          <i class="fa-solid fa-camera"></i> Télécharger Bilan Ciné (Image)
-        </button>
       </div>
 
+      <!-- Statistiques de visionnage -->
       <div class="stats-container">
         <div class="stat-card">
           <h3>Films visionnés</h3>
@@ -216,7 +258,7 @@
     </div>
   </main>
 
-  <!-- MODALE (Trailer / Photo) -->
+  <!-- MODALE (Trailer / Photo / Choix Top 4) -->
   <div id="modal" class="modal" style="display: none;">
     <div class="modal-content">
       <span id="modal-close" class="modal-close">&times;</span>
