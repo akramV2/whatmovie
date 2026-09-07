@@ -1086,3 +1086,201 @@ button:active, .nav-btn:active, .provider-btn:active {
   from { transform: translateY(20px) scale(0.9); opacity: 0; }
   to { transform: translateY(0) scale(1); opacity: 1; }
 }
+
+/* ==========================================
+   STYLES DU PROFIL & CARTE
+   ========================================== */
+
+.profile-card-wrapper {
+  grid-template-columns: 1fr !important;
+  gap: 20px;
+}
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.profile-avatar-container {
+  position: relative;
+  width: 110px;
+  height: 110px;
+  flex-shrink: 0;
+  margin: 0 auto;
+}
+
+.profile-avatar-container img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--accent-color);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+}
+
+.avatar-upload-btn {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background: var(--accent-color);
+  color: #fff;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.avatar-upload-btn:hover {
+  transform: scale(1.1);
+  background: var(--accent-hover);
+}
+
+.profile-info-form {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 260px;
+}
+
+.profile-info-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.profile-info-form label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.profile-info-form input[type="text"],
+.profile-info-form input[type="email"],
+.profile-info-form input[type="password"] {
+  width: 100%;
+  padding: 10px 16px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border-color);
+  border-radius: 99px;
+  color: var(--text-color);
+  font-size: 0.88rem;
+  font-family: var(--font-main);
+}
+
+[data-theme="light"] .profile-info-form input[type="text"],
+[data-theme="light"] .profile-info-form input[type="email"],
+[data-theme="light"] .profile-info-form input[type="password"] {
+  background: #ffffff;
+}
+
+/* TOP 4 FAVORIS */
+.section-title-row {
+  margin-bottom: 12px;
+}
+
+.top4-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 650px) {
+  .top4-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.top4-slot {
+  position: relative;
+  aspect-ratio: 2/3;
+  background: var(--card-bg);
+  border: 2px dashed var(--border-color);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-soft);
+}
+
+.top4-slot:hover {
+  border-color: var(--accent-color);
+  transform: translateY(-4px);
+}
+
+.top4-slot.filled {
+  border-style: solid;
+  border-color: var(--border-color);
+}
+
+.top4-slot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.top4-slot .slot-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: center;
+  padding: 8px;
+}
+
+.top4-slot .slot-placeholder i {
+  font-size: 1.8rem;
+  color: var(--accent-color);
+}
+
+.top4-slot .remove-top4-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.top4-slot .remove-top4-btn:hover {
+  background: #ef4444;
+}
+
+.top4-title-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.9));
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 12px 6px 6px 6px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
