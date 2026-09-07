@@ -34,6 +34,8 @@
 }
 
 [data-theme="light"] input[type="text"],
+[data-theme="light"] input[type="email"],
+[data-theme="light"] input[type="password"],
 [data-theme="light"] select,
 [data-theme="light"] .provider-btn,
 [data-theme="light"] .btn-action,
@@ -90,7 +92,7 @@ h1, h2, h3 {
   letter-spacing: -0.02em;
 }
 
-/* TYPOGRAPHIE LOGO */
+/* TYPOGRAPHIE LOGO ET EN-TÊTE */
 header h1 {
   font-family: var(--font-logo);
   font-size: 2.2rem;
@@ -102,6 +104,26 @@ header h1 {
 header h1 .dot {
   color: var(--accent-color);
   font-family: var(--font-logo);
+}
+
+header {
+  text-align: center;
+  margin-bottom: 20px;
+  width: 100%;
+  max-width: 800px;
+}
+
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  gap: 12px;
+}
+
+header p {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
 }
 
 /* ANIMATION D'OUVERTURE / SPLASH SCREEN */
@@ -187,25 +209,6 @@ header h1 .dot {
   transition: background-image 1s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
 }
 
-header {
-  text-align: center;
-  margin-bottom: 20px;
-  width: 100%;
-  max-width: 800px;
-}
-
-.header-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 6px;
-}
-
-header p {
-  color: var(--text-secondary);
-  font-size: 0.95rem;
-}
-
 /* NAVIGATION BARRE */
 .nav-bar {
   position: relative;
@@ -286,7 +289,7 @@ header p {
   flex: 1;
 }
 
-input[type="text"] {
+input[type="text"], input[type="email"], input[type="password"] {
   width: 100%;
   padding: 14px 18px;
   background: var(--card-bg);
@@ -299,7 +302,7 @@ input[type="text"] {
   box-shadow: var(--shadow-soft);
 }
 
-input[type="text"]:focus, select:focus {
+input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focus, select:focus {
   outline: none;
   border-color: var(--accent-color);
 }
@@ -443,6 +446,16 @@ button {
 
 .btn-primary:hover {
   background: var(--accent-hover);
+}
+
+.btn-danger {
+  background: #ef4444 !important;
+  color: #ffffff !important;
+  border: none;
+}
+
+.btn-danger:hover {
+  background: #dc2626 !important;
 }
 
 .btn-action {
@@ -726,7 +739,7 @@ button {
   justify-content: center;
 }
 
-/* QUIZ (FLOU RÉDUIT & BOUTONS CORRIGÉS) */
+/* QUIZ */
 .quiz-card {
   background: var(--card-bg);
   backdrop-filter: blur(15px);
@@ -927,16 +940,17 @@ button {
   background: var(--card-bg);
   border: 1px solid var(--border-color);
   border-radius: 24px;
-  padding: 20px;
+  padding: 24px;
   display: flex;
   justify-content: center;
   align-items: center;
+  overflow-y: auto;
 }
 
 .modal-close, .close-btn {
   position: absolute;
-  top: 10px;
-  right: 16px;
+  top: 12px;
+  right: 18px;
   font-size: 2rem;
   cursor: pointer;
   color: var(--text-color);
@@ -948,6 +962,7 @@ button {
 #modal-content-container, #modal-content {
   width: 100%;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
 }
@@ -966,6 +981,48 @@ button {
   margin: 0 auto;
   border-radius: 12px;
   object-fit: contain;
+}
+
+/* FORMULAIRE ENGRENAGE DANS LA MODALE */
+.modal-profile-form {
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-align: left;
+}
+
+.modal-profile-form h2 {
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.modal-profile-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.modal-profile-form label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.modal-avatar-preview-wrapper {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  margin: 0 auto 12px auto;
+}
+
+.modal-avatar-preview-wrapper img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--accent-color);
 }
 
 /* TOASTS */
@@ -1005,11 +1062,7 @@ button {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* ==========================================
-   ANIMATIONS & MICRO-INTERACTIONS
-   ========================================== */
-
-/* Effet de pression dynamique sur les éléments interactifs */
+/* ANIMATIONS & MICRO-INTERACTIONS */
 button, .nav-btn, .provider-btn, .fav-card, .badge-card, .search-item {
   transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
               box-shadow 0.25s ease,
@@ -1021,13 +1074,11 @@ button:active, .nav-btn:active, .provider-btn:active {
   transform: scale(0.94) !important;
 }
 
-/* Surélévation et lueur sur le bouton principal */
 .btn-primary:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(255, 94, 30, 0.45);
 }
 
-/* Zoom fluide et ombre portée sur l'affiche au survol */
 .poster-container img {
   transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease;
 }
@@ -1037,13 +1088,11 @@ button:active, .nav-btn:active, .provider-btn:active {
   box-shadow: 0 14px 30px rgba(255, 94, 30, 0.25);
 }
 
-/* Flottement des cartes au survol (favoris et badges) */
 .fav-card:hover, .badge-card:not(.locked):hover {
   transform: translateY(-6px) scale(1.02);
   box-shadow: 0 12px 25px rgba(0, 0, 0, 0.2);
 }
 
-/* Effets visuels pour le Quiz */
 .quiz-btn.wrong {
   animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }
@@ -1052,17 +1101,14 @@ button:active, .nav-btn:active, .provider-btn:active {
   animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
 }
 
-/* Animation de déblocage des badges */
 .badge-card.unlocked .badge-icon {
   animation: badgeUnlock 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
 }
 
-/* Animation des notifications Toast */
 .toast {
   animation: toastIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
-/* KEYFRAMES */
 @keyframes shake {
   10%, 90% { transform: translate3d(-1px, 0, 0); }
   20%, 80% { transform: translate3d(2px, 0, 0); }
@@ -1087,10 +1133,7 @@ button:active, .nav-btn:active, .provider-btn:active {
   to { transform: translateY(0) scale(1); opacity: 1; }
 }
 
-/* ==========================================
-   STYLES DU PROFIL & CARTE
-   ========================================== */
-
+/* STYLES DU PROFIL & CARTE */
 .profile-card-wrapper {
   grid-template-columns: 1fr !important;
   gap: 20px;
@@ -1142,43 +1185,12 @@ button:active, .nav-btn:active, .provider-btn:active {
   background: var(--accent-hover);
 }
 
-.profile-info-form {
+.profile-summary-info {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  min-width: 260px;
-}
-
-.profile-info-form .form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.profile-info-form label {
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-.profile-info-form input[type="text"],
-.profile-info-form input[type="email"],
-.profile-info-form input[type="password"] {
-  width: 100%;
-  padding: 10px 16px;
-  background: rgba(0, 0, 0, 0.25);
-  border: 1px solid var(--border-color);
-  border-radius: 99px;
-  color: var(--text-color);
-  font-size: 0.88rem;
-  font-family: var(--font-main);
-}
-
-[data-theme="light"] .profile-info-form input[type="text"],
-[data-theme="light"] .profile-info-form input[type="email"],
-[data-theme="light"] .profile-info-form input[type="password"] {
-  background: #ffffff;
+  gap: 8px;
+  min-width: 240px;
 }
 
 /* TOP 4 FAVORIS */
