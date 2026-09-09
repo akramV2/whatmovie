@@ -54,27 +54,20 @@ let selectedProviders = [];
 let seenMovies = new Set();
 let searchDebounceTimer = null;
 
-// Espace Admin — seul ce compte (identifié par son e-mail, insensible à la casse)
-// débloque l'onglet, quel que soit l'appareil utilisé pour se connecter.
+// Espace Admin
 const ADMIN_EMAIL = 'breyneraphael02@gmail.com';
 const adminNavBtn = document.getElementById('admin-nav-btn');
 const adminRefreshBtn = document.getElementById('admin-refresh-btn');
 
 // État d'authentification et Profil
-// isLoggedIn / userProfile ne représentent plus une simple préférence locale :
-// ils reflètent une vraie session Supabase Auth (compte email + mot de passe).
-// Par défaut on démarre "non connecté" tant que la session n'a pas été vérifiée
-// auprès de Supabase (voir initAuth()) — l'app reste utilisable en mode invité
-// (favoris/vus stockés localement) tant qu'aucun compte n'est connecté.
 let isLoggedIn = false;
-let currentUserId = null; // id Supabase (auth.users.id) du compte connecté
+let currentUserId = null;
 let userProfile = JSON.parse(localStorage.getItem('whatmovie_user_profile')) || {
   pseudo: 'Cinéphile',
   email: '',
   avatar: '',
   top4: [null, null, null, null]
 };
-// Le mode d'affichage de la modale de connexion : 'login' ou 'signup'
 let authModalMode = 'login';
 
 // État du Quiz
@@ -149,15 +142,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
   initTheme();
   fetchGenres();
-  renderFavorites();
-  updateStats();
-  checkBadges();
+  setupNavigation();
   setupKeyboardShortcuts();
   setupProviderButtons();
   setupExportImport();
   setupQuizListeners();
   setupSettingsAndAuth();
   setupAdminPanel();
+  setupMediaModals();
+  setupModalEvents();
+
+  if (proposeBtn) proposeBtn.addEventListener('click', loadRandomMovie);
+  if (nextBtn) nextBtn.addEventListener('click', triggerSwipeNext);
+  if (favBtn) favBtn.addEventListener('click', toggleFavorite);
+
+  if (searchBtn) {
+    searchBtn.addEventListener('click', () => {
+      const q = searchInput ? searchInput.value.trim() : '';
+      if (q) fetchSearchSuggestions(q);
+    });
+  }
+
   initAuth();
 
   const urlParams = new URLSearchParams(window.location.search);
@@ -169,7 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// 1. Thème et LocalStorage
+// 1. Thème et Navigation
 function initTheme() {
   const savedTheme = localStorage.getItem('theme');
   if (savedTheme === 'light') {
@@ -194,6 +199,44 @@ if (themeToggle) {
       localStorage.setItem('theme', 'light');
     }
   });
+}
+
+function setupNavigation() {
+  const navBtns = document.querySelectorAll('.nav-btn');
+  navBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetTab = btn.getAttribute('data-tab');
+      if (targetTab) switchTab(targetTab);
+    });
+  });
+}
+
+function switchTab(tabId) {
+  const navBtns = document.querySelectorAll('.nav-btn');
+  const tabs = document.querySelectorAll('.tab-content');
+
+  tabs.forEach(tab => {
+    if (tab.id === tabId) {
+      tab.classList.add('active');
+    } else {
+      tab.classList.remove('active');
+    }
+  });
+
+  navBtns.forEach(btn => {
+    if (btn.getAttribute('data-tab') === tabId) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+
+  if (tabId === 'tab-quiz' && !currentQuizMovie) {
+    loadQuizQuestion();
+  }
+  if (tabId === 'tab-admin') {
+    loadAdminStats();
+  }
 }
 
 // 2. Raccourcis Clavier
@@ -631,6 +674,25 @@ function updateStats() {
   }
 }
 
+function checkBadges() {
+  const badgesGrid = document.getElementById('badges-grid');
+  if (!badgesGrid) return;
+  badgesGrid.innerHTML = '';
+
+  badges.forEach(badge => {
+    const isUnlocked = badge.condition(watchedMovies, favorites);
+    const card = document.createElement('div');
+    card.className = `badge-card ${isUnlocked ? 'unlocked' : 'locked'}`;
+    card.innerHTML = `
+      <i class="fa-solid ${badge.icon} badge-icon"></i>
+      <div class="badge-title">${badge.title}</div>
+      <div class="badge-desc">${badge.desc}</div>
+      <div class="badge-status">${isUnlocked ? 'Débloqué' : 'Verrouillé'}</div>
+    `;
+    badgesGrid.appendChild(card);
+  });
+}
+
 // 11. GESTION DES PARAMÈTRES VIA L'ENGRENAGE ET AUTHENTIFICATION
 function setupSettingsAndAuth() {
   if (settingsBtn) {
@@ -661,17 +723,6 @@ function openSettingsModal() {
   modal.style.display = 'flex';
 }
 
-// ------------------------------------------------------------------
-// AUTHENTIFICATION RÉELLE (Supabase Auth) — comptes uniques par e-mail,
-// pseudo unique, données personnelles synchronisées sur le serveur.
-// Cela permet notamment de retrouver son compte admin depuis n'importe
-// quel appareil (téléphone, PC…) puisque l'accès admin est basé sur
-// l'e-mail du compte connecté et non plus sur une valeur stockée
-// localement dans le navigateur.
-// ------------------------------------------------------------------
-
-// Vérifie au chargement si une session Supabase existe déjà (par ex. si
-// l'utilisateur s'est déjà connecté sur cet appareil) et charge son profil.
 async function initAuth() {
   if (typeof supabaseClient === 'undefined') {
     loadUserProfile();
@@ -697,7 +748,6 @@ async function initAuth() {
   checkBadges();
   logVisite();
 
-  // Garde l'app synchronisée si la session change dans un autre onglet.
   supabaseClient.auth.onAuthStateChange((event) => {
     if (event === 'SIGNED_OUT') {
       isLoggedIn = false;
@@ -707,8 +757,6 @@ async function initAuth() {
   });
 }
 
-// À partir d'une session valide, récupère (ou crée si absente) la ligne
-// "profiles" de l'utilisateur et remplit l'état de l'app avec ses données.
 async function applySessionAndLoadProfile(session) {
   currentUserId = session.user.id;
   isLoggedIn = true;
@@ -732,7 +780,6 @@ async function applySessionAndLoadProfile(session) {
       favorites = Array.isArray(profileRow.favorites) ? profileRow.favorites : [];
       watchedMovies = Array.isArray(profileRow.watched) ? profileRow.watched : [];
     } else {
-      // Session valide mais pas encore de ligne de profil (cas rare) : on la crée.
       userProfile = {
         pseudo: session.user.email.split('@')[0],
         email: session.user.email,
@@ -757,15 +804,12 @@ async function applySessionAndLoadProfile(session) {
   }
 }
 
-// Sauvegarde locale (cache hors-ligne) de l'état courant.
 function persistLocalCache() {
   localStorage.setItem('whatmovie_user_profile', JSON.stringify(userProfile));
   localStorage.setItem('whatmovie_favs', JSON.stringify(favorites));
   localStorage.setItem('whatmovie_watched', JSON.stringify(watchedMovies));
 }
 
-// Répercute une mise à jour partielle du profil vers Supabase, uniquement
-// si un compte est réellement connecté. Échoue silencieusement hors-ligne.
 async function pushProfileUpdate(partialFields) {
   persistLocalCache();
   if (!isLoggedIn || !currentUserId || typeof supabaseClient === 'undefined') return;
@@ -773,14 +817,10 @@ async function pushProfileUpdate(partialFields) {
     const { error } = await supabaseClient.from('profiles').update(partialFields).eq('id', currentUserId);
     if (error) throw error;
   } catch (err) {
-    console.warn('Synchronisation du profil impossible (hors-ligne ?) :', err);
+    console.warn('Synchronisation du profil impossible :', err);
   }
 }
 
-// Vérifie si un pseudo est déjà pris par un autre compte (insensible à la casse).
-// excludeUserId permet d'ignorer le compte courant lors d'une modification.
-// Passe par la vue publique "pseudos_publics" (id + pseudo uniquement) car les
-// policies RLS de la table "profiles" empêchent de lire les profils des autres.
 async function isPseudoTaken(pseudoClean, excludeUserId = null) {
   if (typeof supabaseClient === 'undefined') return false;
   try {
@@ -877,7 +917,6 @@ function renderEditProfileModalContent() {
       saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enregistrement...';
 
       try {
-        // Pseudo unique : on ne vérifie que s'il a changé.
         if (newPseudo.toLowerCase() !== (userProfile.pseudo || '').toLowerCase()) {
           const taken = await isPseudoTaken(newPseudo.toLowerCase(), currentUserId);
           if (taken) {
@@ -886,7 +925,6 @@ function renderEditProfileModalContent() {
           }
         }
 
-        // Changement d'e-mail / mot de passe géré par Supabase Auth.
         const authUpdates = {};
         if (newEmail.toLowerCase() !== (userProfile.email || '').toLowerCase()) authUpdates.email = newEmail;
         if (newPassword) authUpdates.password = newPassword;
@@ -926,7 +964,6 @@ function renderEditProfileModalContent() {
   }
 }
 
-// Modale de connexion / création de compte (deux vues, un seul conteneur).
 function renderLoginModalContent() {
   if (authModalMode === 'signup') {
     renderSignupModalContent();
@@ -1124,7 +1161,6 @@ function renderSignupModalContent() {
         }
 
         if (data.session) {
-          // Confirmation par e-mail désactivée : la session est immédiate.
           await applySessionAndLoadProfile(data.session);
           loadUserProfile();
           renderFavorites();
@@ -1133,7 +1169,6 @@ function renderSignupModalContent() {
           closeModal();
           showToast(`Bienvenue ${pseudo} ! Ton compte est créé.`);
         } else {
-          // Confirmation par e-mail activée côté Supabase : pas de session tout de suite.
           authModalMode = 'login';
           renderLoginModalContent();
           showToast("Compte créé ! Vérifie ta boîte mail pour confirmer ton adresse, puis connecte-toi.");
@@ -1165,8 +1200,6 @@ async function handleLogout() {
 
   isLoggedIn = false;
   currentUserId = null;
-  // On repart de zéro localement pour ne pas mélanger les données d'un
-  // compte avec celles d'un autre utilisateur sur le même appareil.
   userProfile = { pseudo: 'Cinéphile', email: '', avatar: '', top4: [null, null, null, null] };
   favorites = [];
   watchedMovies = [];
@@ -1484,9 +1517,6 @@ function setupExportImport() {
           if (Array.isArray(parsed.favorites) && Array.isArray(parsed.watchedMovies)) {
             favorites = parsed.favorites;
             watchedMovies = parsed.watchedMovies;
-            // Le pseudo/avatar/top4 peuvent être repris de la sauvegarde, mais
-            // l'e-mail et le compte connecté ne sont plus modifiés par un simple
-            // import local : la connexion se fait uniquement via Se connecter.
             if (parsed.profile) {
               userProfile.pseudo = parsed.profile.pseudo || userProfile.pseudo;
               userProfile.avatar = parsed.profile.avatar || userProfile.avatar;
@@ -1507,7 +1537,7 @@ function setupExportImport() {
             updateStats();
             loadUserProfile();
             checkBadges();
-            showToast(isLoggedIn ? "Données importées et synchronisées avec votre compte !" : "Données importées localement. Connectez-vous pour les synchroniser.");
+            showToast(isLoggedIn ? "Données importées et synchronisées avec votre compte !" : "Données importées localement.");
           } else {
             showToast("Fichier de sauvegarde invalide.");
           }
@@ -1612,282 +1642,122 @@ function handleQuizAnswer(selectedBtn, chosenTitle) {
   if (quizNextBtn) quizNextBtn.style.display = 'inline-block';
 }
 
-// 14. Badges & Succès
-function checkBadges() {
-  const badgesGrid = document.getElementById('badges-grid');
-  if (!badgesGrid) return;
+// 14. Modales Média (Bande-Annonce & Affiche)
+function setupMediaModals() {
+  if (trailerBtn) {
+    trailerBtn.addEventListener('click', () => {
+      if (!currentMovie || !currentMovie.videos) {
+        showToast("Bande-annonce non disponible.");
+        return;
+      }
+      const trailer = currentMovie.videos.find(v => v.type === 'Trailer' && v.site === 'YouTube') || currentMovie.videos[0];
+      if (trailer && trailer.key) {
+        openVideoModal(trailer.key);
+      } else {
+        showToast("Bande-annonce non disponible.");
+      }
+    });
+  }
 
-  badgesGrid.innerHTML = '';
-  badges.forEach(badge => {
-    const isUnlocked = badge.condition ? badge.condition(watchedMovies, favorites) : false;
-    const card = document.createElement('div');
-    card.className = `badge-card ${isUnlocked ? 'unlocked' : 'locked'}`;
-    card.innerHTML = `
-      <i class="fa-solid ${badge.icon} badge-icon"></i>
-      <div class="badge-title">${badge.title}</div>
-      <div class="badge-desc">${badge.desc}</div>
-      <div class="badge-status">${isUnlocked ? 'Débloqué' : 'Verrouillé'}</div>
-    `;
-    badgesGrid.appendChild(card);
-  });
+  if (posterContainer) {
+    posterContainer.addEventListener('click', () => {
+      if (currentMovie && currentMovie.poster_path) {
+        openImageModal(`${IMAGE_BASE_URL}${currentMovie.poster_path}`);
+      }
+    });
+  }
 }
 
-// 15. Modales (Trailer / Photo)
-if (trailerBtn) {
-  trailerBtn.addEventListener('click', () => {
-    if (!currentMovie || !currentMovie.videos) return;
-    const trailer = currentMovie.videos.find(v => v.type === 'Trailer' && v.site === 'YouTube') || currentMovie.videos[0];
-    
-    if (trailer && modal && modalContainer) {
-      modalContainer.innerHTML = `<iframe src="https://www.youtube.com/embed/${trailer.key}?autoplay=1" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
-      modal.style.display = 'flex';
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else {
-      showToast("Aucune bande-annonce disponible.");
-    }
-  });
+function openVideoModal(youtubeKey) {
+  if (!modal || !modalContainer) return;
+  modalContainer.innerHTML = `
+    <iframe src="https://www.youtube.com/embed/${youtubeKey}?autoplay=1" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+  `;
+  modal.style.display = 'flex';
 }
 
-if (posterContainer) {
-  posterContainer.addEventListener('click', () => {
-    if (posterImg && posterImg.src && modal && modalContainer) {
-      modalContainer.innerHTML = `<img src="${posterImg.src}" alt="Affiche grand format">`;
-      modal.style.display = 'flex';
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  });
+function openImageModal(imgSrc) {
+  if (!modal || !modalContainer) return;
+  modalContainer.innerHTML = `
+    <img src="${imgSrc}" alt="Affiche du film">
+  `;
+  modal.style.display = 'flex';
 }
 
 function closeModal() {
+  if (modal) modal.style.display = 'none';
+  if (modalContainer) modalContainer.innerHTML = '';
+}
+
+function setupModalEvents() {
+  if (modalClose) {
+    modalClose.addEventListener('click', closeModal);
+  }
   if (modal) {
-    modal.style.display = 'none';
-    if (modalContainer) modalContainer.innerHTML = '';
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal();
+    });
   }
 }
 
-if (modalClose) modalClose.addEventListener('click', closeModal);
-window.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
-window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
-
-// 16. Événements Boutons
-if (proposeBtn) proposeBtn.addEventListener('click', loadRandomMovie);
-if (nextBtn) nextBtn.addEventListener('click', triggerSwipeNext);
-if (favBtn) favBtn.addEventListener('click', toggleFavorite);
-
-async function searchMovie(query) {
-  const cleanQuery = query.trim();
-  if (!cleanQuery) return;
-
-  try {
-    const res = await fetch(`${BASE_URL}/search/movie?api_key=${API_KEY}&language=fr-FR&query=${encodeURIComponent(cleanQuery)}&page=1`);
-    const data = await res.json();
-
-    if (data.results && data.results.length > 0) {
-      const movie = data.results[0];
-      seenMovies.add(movie.id);
-      await fetchMovieDetails(movie.id);
-      if (searchDropdown) searchDropdown.classList.remove('active');
-    } else {
-      showToast("Aucun film trouvé pour cette recherche.");
-    }
-  } catch (err) {
-    showToast("Erreur lors de la recherche du film.");
-  }
-}
-
-if (searchBtn) {
-  searchBtn.addEventListener('click', () => {
-    if (searchInput) {
-      const query = searchInput.value.trim();
-      if (query) searchMovie(query);
-    }
-  });
-}
-
-if (searchInput) {
-  searchInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-      const query = searchInput.value.trim();
-      if (query) searchMovie(query);
-    }
-  });
-}
-
-// 17. Onglets & Changements de Vues
-const navButtons = document.querySelectorAll('.nav-btn');
-const tabContents = document.querySelectorAll('.tab-content');
-
-function switchTab(targetId) {
-  navButtons.forEach(b => b.classList.remove('active'));
-  tabContents.forEach(c => c.classList.remove('active'));
-
-  const activeBtn = document.querySelector(`[data-target="${targetId}"]`);
-  if (activeBtn) activeBtn.classList.add('active');
-  
-  const targetTab = document.getElementById(targetId);
-  if (targetTab) targetTab.classList.add('active');
-
-  if (targetId === 'tab-trending') loadTrendingMovies();
-  if (targetId === 'tab-favorites') renderFavorites();
-  if (targetId === 'tab-profile') {
-    updateStats();
-    loadUserProfile();
-  }
-  if (targetId === 'tab-quiz' && quizQuestionsCount === 0) loadQuizQuestion();
-  if (targetId === 'tab-badges') checkBadges();
-  if (targetId === 'tab-admin') loadAdminPanel();
-}
-
-navButtons.forEach(btn => {
-  btn.addEventListener('click', () => {
-    const targetId = btn.getAttribute('data-target');
-    switchTab(targetId);
-  });
-});
-
-async function loadTrendingMovies() {
-  const trendingGrid = document.getElementById('trending-grid');
-  if (!trendingGrid) return;
-  trendingGrid.innerHTML = '<p style="color: var(--text-secondary);">Chargement...</p>';
-
-  try {
-    const res = await fetch(`${BASE_URL}/trending/movie/week?api_key=${API_KEY}&language=fr-FR`);
-    const data = await res.json();
-
-    trendingGrid.innerHTML = '';
-    if (data.results) {
-      data.results.forEach(m => {
-        const card = document.createElement('div');
-        card.className = 'fav-card';
-        card.innerHTML = `
-          <img src="${m.poster_path ? IMAGE_BASE_URL + m.poster_path : 'https://via.placeholder.com/150'}" alt="${m.title}" loading="lazy">
-          <p>${m.title}</p>
-        `;
-        card.addEventListener('click', () => {
-          seenMovies.add(m.id);
-          fetchMovieDetails(m.id);
-          switchTab('tab-discover');
-        });
-        trendingGrid.appendChild(card);
-      });
-    }
-  } catch (err) {
-    trendingGrid.innerHTML = '<p style="color: var(--text-secondary);">Impossible de charger les tendances.</p>';
-  }
-}
-
-// 18. Espace Admin
-function setupAdminPanel() {
-  if (adminRefreshBtn) {
-    adminRefreshBtn.addEventListener('click', loadAdminPanel);
-  }
-}
-
-// Affiche ou masque le bouton "Admin" selon l'e-mail du compte Supabase
-// connecté. Comme cette info vient d'une vraie session (et non plus d'une
-// valeur locale au navigateur), l'accès admin fonctionne sur n'importe quel
-// appareil dès qu'on se connecte avec breyneraphael02@gmail.com.
-// NB : ce contrôle côté navigateur cache seulement le bouton/l'onglet aux
-// yeux d'un visiteur normal — la vraie protection des données se fait via
-// les policies RLS Supabase (voir la note SQL fournie avec ce projet).
+// 15. Espace Administration
 function checkAdminAccess() {
-  if (!adminNavBtn) return;
-  const isAdmin = isLoggedIn && (userProfile.email || '').trim().toLowerCase() === ADMIN_EMAIL;
-  adminNavBtn.style.display = isAdmin ? 'flex' : 'none';
-
-  // Si l'utilisateur courant vient de perdre l'accès admin mais que l'onglet
-  // admin est actif, on le ramène sur l'onglet Découvrir.
-  if (!isAdmin) {
-    const adminTab = document.getElementById('tab-admin');
-    if (adminTab && adminTab.classList.contains('active')) {
-      switchTab('tab-discover');
-    }
+  const isAdmin = isLoggedIn && userProfile.email && userProfile.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+  if (adminNavBtn) {
+    adminNavBtn.style.display = isAdmin ? 'flex' : 'none';
+  }
+  const adminTab = document.getElementById('tab-admin');
+  if (!isAdmin && adminTab && adminTab.classList.contains('active')) {
+    switchTab('tab-discover');
   }
 }
 
-// Enregistre une visite dans Supabase (table "visites").
-// Échoue silencieusement si la table n'existe pas encore ou si hors-ligne.
 async function logVisite() {
   if (typeof supabaseClient === 'undefined') return;
   try {
-    await supabaseClient.from('visites').insert([{
-      pseudo: isLoggedIn ? (userProfile.pseudo || null) : null
-    }]);
+    await supabaseClient.from('visites').insert([{ timestamp: new Date().toISOString() }]);
   } catch (err) {
-    console.warn('Suivi de visite indisponible :', err);
+    // Ignore si la table n'est pas configurée
   }
 }
 
-async function loadAdminPanel() {
-  // Double vérification avant de charger quoi que ce soit, même si l'onglet
-  // ne devrait être accessible qu'aux admins.
-  const isAdmin = isLoggedIn && (userProfile.email || '').trim().toLowerCase() === ADMIN_EMAIL;
-  if (!isAdmin || typeof supabaseClient === 'undefined') return;
+async function loadAdminStats() {
+  const adminTableBody = document.getElementById('admin-users-table-body');
+  const adminVisitsCount = document.getElementById('admin-visits-count');
+  const adminUsersCount = document.getElementById('admin-users-count');
 
-  const usersStat = document.getElementById('admin-stat-users');
-  const visitsStat = document.getElementById('admin-stat-visits');
-  const visitsTodayStat = document.getElementById('admin-stat-visits-today');
-  const usersTable = document.getElementById('admin-users-table');
-  const visitsTable = document.getElementById('admin-visits-table');
-
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
+  if (typeof supabaseClient === 'undefined') return;
 
   try {
-    const [
-      { count: userCount },
-      { count: visitCount },
-      { count: visitTodayCount },
-      { data: recentUsers },
-      { data: recentVisits }
-    ] = await Promise.all([
-      supabaseClient.from('profiles').select('*', { count: 'exact', head: true }),
-      supabaseClient.from('visites').select('*', { count: 'exact', head: true }),
-      supabaseClient.from('visites').select('*', { count: 'exact', head: true }).gte('created_at', startOfToday.toISOString()),
-      supabaseClient.from('profiles').select('pseudo, email, created_at').order('created_at', { ascending: false }).limit(15),
-      supabaseClient.from('visites').select('pseudo, created_at').order('created_at', { ascending: false }).limit(15)
-    ]);
-
-    if (usersStat) usersStat.textContent = userCount ?? '0';
-    if (visitsStat) visitsStat.textContent = visitCount ?? '0';
-    if (visitsTodayStat) visitsTodayStat.textContent = visitTodayCount ?? '0';
-
-    if (usersTable) {
-      if (recentUsers && recentUsers.length > 0) {
-        usersTable.innerHTML = buildAdminTable(
-          ['Pseudo', 'E-mail', 'Inscrit le'],
-          recentUsers.map(u => [u.pseudo, u.email || '—', formatAdminDate(u.created_at)])
-        );
-      } else {
-        usersTable.innerHTML = '<p class="admin-empty">Aucun utilisateur pour le moment.</p>';
+    const { data: profiles, error: pErr } = await supabaseClient.from('profiles').select('*');
+    if (!pErr && profiles) {
+      if (adminUsersCount) adminUsersCount.textContent = profiles.length;
+      if (adminTableBody) {
+        adminTableBody.innerHTML = profiles.map(p => `
+          <tr>
+            <td>${p.pseudo || 'N/A'}</td>
+            <td>${p.email || 'N/A'}</td>
+            <td>${Array.isArray(p.favorites) ? p.favorites.length : 0}</td>
+            <td>${Array.isArray(p.watched) ? p.watched.length : 0}</td>
+          </tr>
+        `).join('');
       }
     }
 
-    if (visitsTable) {
-      if (recentVisits && recentVisits.length > 0) {
-        visitsTable.innerHTML = buildAdminTable(
-          ['Visiteur', 'Date'],
-          recentVisits.map(v => [v.pseudo || 'Anonyme', formatAdminDate(v.created_at)])
-        );
-      } else {
-        visitsTable.innerHTML = '<p class="admin-empty">Aucune visite enregistrée pour le moment.</p>';
-      }
+    const { count, error: vErr } = await supabaseClient.from('visites').select('*', { count: 'exact', head: true });
+    if (!vErr && count !== null && adminVisitsCount) {
+      adminVisitsCount.textContent = count;
     }
   } catch (err) {
-    console.error('Erreur chargement admin :', err);
-    if (usersTable) usersTable.innerHTML = '<p class="admin-empty">Impossible de charger les données. Vérifie que les tables Supabase existent (voir la note fournie).</p>';
-    if (visitsTable) visitsTable.innerHTML = '';
+    console.warn('Erreur chargement admin:', err);
   }
 }
 
-function buildAdminTable(headers, rows) {
-  const thead = `<tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>`;
-  const tbody = rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('');
-  return `<table class="admin-table"><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
-}
-
-function formatAdminDate(isoDate) {
-  if (!isoDate) return '—';
-  const d = new Date(isoDate);
-  return d.toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+function setupAdminPanel() {
+  if (adminRefreshBtn) {
+    adminRefreshBtn.addEventListener('click', () => {
+      loadAdminStats();
+      showToast("Statistiques administrateur actualisées.");
+    });
+  }
 }
