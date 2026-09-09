@@ -1403,3 +1403,27 @@ button:active, .nav-btn:active, .provider-btn:active {
     width : 100% !important;
   }
 }
+
+/* Blocage strict du débordement global */
+html, body {
+  width: 100% !important;
+  max-width: 100vw !important;
+  overflow-x: hidden !important;
+}
+
+/* Ajustement du header supérieur */
+.header-top {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  padding: 0 10px !important;
+}
+
+/* Recadrage de tous les champs, boutons et cartes */
+input, select, button, form, .card, img {
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
