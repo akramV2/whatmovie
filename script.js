@@ -54,20 +54,28 @@ let selectedProviders = [];
 let seenMovies = new Set();
 let searchDebounceTimer = null;
 
-// Espace Admin — seul ce pseudo (insensible à la casse) débloque l'onglet
-const ADMIN_PSEUDO = 'akram';
+// Espace Admin — seul ce compte (identifié par son e-mail, insensible à la casse)
+// débloque l'onglet, quel que soit l'appareil utilisé pour se connecter.
+const ADMIN_EMAIL = 'breyneraphael02@gmail.com';
 const adminNavBtn = document.getElementById('admin-nav-btn');
 const adminRefreshBtn = document.getElementById('admin-refresh-btn');
 
 // État d'authentification et Profil
-let isLoggedIn = JSON.parse(localStorage.getItem('whatmovie_logged_in')) ?? true;
+// isLoggedIn / userProfile ne représentent plus une simple préférence locale :
+// ils reflètent une vraie session Supabase Auth (compte email + mot de passe).
+// Par défaut on démarre "non connecté" tant que la session n'a pas été vérifiée
+// auprès de Supabase (voir initAuth()) — l'app reste utilisable en mode invité
+// (favoris/vus stockés localement) tant qu'aucun compte n'est connecté.
+let isLoggedIn = false;
+let currentUserId = null; // id Supabase (auth.users.id) du compte connecté
 let userProfile = JSON.parse(localStorage.getItem('whatmovie_user_profile')) || {
   pseudo: 'Cinéphile',
-  email: 'utilisateur@whatmovie.fr',
-  password: 'password123',
+  email: '',
   avatar: '',
   top4: [null, null, null, null]
 };
+// Le mode d'affichage de la modale de connexion : 'login' ou 'signup'
+let authModalMode = 'login';
 
 // État du Quiz
 let quizScore = 0;
@@ -149,9 +157,8 @@ document.addEventListener('DOMContentLoaded', () => {
   setupExportImport();
   setupQuizListeners();
   setupSettingsAndAuth();
-  loadUserProfile();
   setupAdminPanel();
-  logVisite();
+  initAuth();
 
   const urlParams = new URLSearchParams(window.location.search);
   const movieId = urlParams.get('id');
@@ -509,7 +516,7 @@ function toggleFavorite() {
     });
     showToast("Ajouté aux favoris.");
   }
-  localStorage.setItem('whatmovie_favs', JSON.stringify(favorites));
+  pushProfileUpdate({ favorites });
   updateFavButtonState();
   renderFavorites();
   checkBadges();
@@ -549,7 +556,7 @@ function renderFavorites() {
     card.querySelector('button').addEventListener('click', (e) => {
       e.stopPropagation();
       favorites = favorites.filter(fav => fav.id !== f.id);
-      localStorage.setItem('whatmovie_favs', JSON.stringify(favorites));
+      pushProfileUpdate({ favorites });
       renderFavorites();
       updateFavButtonState();
       checkBadges();
@@ -571,7 +578,7 @@ function markAsWatched(m) {
       genres: m.genres || [],
       release_date: m.release_date || ''
     });
-    localStorage.setItem('whatmovie_watched', JSON.stringify(watchedMovies));
+    pushProfileUpdate({ watched: watchedMovies });
     updateStats();
     checkBadges();
   }
@@ -645,12 +652,149 @@ function setupSettingsAndAuth() {
 
 function openSettingsModal() {
   if (!modal || !modalContainer) return;
+  authModalMode = 'login';
   if (!isLoggedIn) {
     renderLoginModalContent();
   } else {
     renderEditProfileModalContent();
   }
   modal.style.display = 'flex';
+}
+
+// ------------------------------------------------------------------
+// AUTHENTIFICATION RÉELLE (Supabase Auth) — comptes uniques par e-mail,
+// pseudo unique, données personnelles synchronisées sur le serveur.
+// Cela permet notamment de retrouver son compte admin depuis n'importe
+// quel appareil (téléphone, PC…) puisque l'accès admin est basé sur
+// l'e-mail du compte connecté et non plus sur une valeur stockée
+// localement dans le navigateur.
+// ------------------------------------------------------------------
+
+// Vérifie au chargement si une session Supabase existe déjà (par ex. si
+// l'utilisateur s'est déjà connecté sur cet appareil) et charge son profil.
+async function initAuth() {
+  if (typeof supabaseClient === 'undefined') {
+    loadUserProfile();
+    logVisite();
+    return;
+  }
+
+  try {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (session && session.user) {
+      await applySessionAndLoadProfile(session);
+    } else {
+      isLoggedIn = false;
+      currentUserId = null;
+    }
+  } catch (err) {
+    console.warn('Impossible de vérifier la session existante :', err);
+  }
+
+  loadUserProfile();
+  renderFavorites();
+  updateStats();
+  checkBadges();
+  logVisite();
+
+  // Garde l'app synchronisée si la session change dans un autre onglet.
+  supabaseClient.auth.onAuthStateChange((event) => {
+    if (event === 'SIGNED_OUT') {
+      isLoggedIn = false;
+      currentUserId = null;
+      loadUserProfile();
+    }
+  });
+}
+
+// À partir d'une session valide, récupère (ou crée si absente) la ligne
+// "profiles" de l'utilisateur et remplit l'état de l'app avec ses données.
+async function applySessionAndLoadProfile(session) {
+  currentUserId = session.user.id;
+  isLoggedIn = true;
+
+  try {
+    const { data: profileRow, error } = await supabaseClient
+      .from('profiles')
+      .select('*')
+      .eq('id', currentUserId)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    if (profileRow) {
+      userProfile = {
+        pseudo: profileRow.pseudo || session.user.email.split('@')[0],
+        email: profileRow.email || session.user.email,
+        avatar: profileRow.avatar || '',
+        top4: Array.isArray(profileRow.top4) && profileRow.top4.length === 4 ? profileRow.top4 : [null, null, null, null]
+      };
+      favorites = Array.isArray(profileRow.favorites) ? profileRow.favorites : [];
+      watchedMovies = Array.isArray(profileRow.watched) ? profileRow.watched : [];
+    } else {
+      // Session valide mais pas encore de ligne de profil (cas rare) : on la crée.
+      userProfile = {
+        pseudo: session.user.email.split('@')[0],
+        email: session.user.email,
+        avatar: '',
+        top4: [null, null, null, null]
+      };
+      favorites = [];
+      watchedMovies = [];
+      await supabaseClient.from('profiles').insert([{
+        id: currentUserId,
+        pseudo: userProfile.pseudo,
+        email: userProfile.email,
+        top4: userProfile.top4,
+        favorites: [],
+        watched: []
+      }]);
+    }
+
+    persistLocalCache();
+  } catch (err) {
+    console.warn('Impossible de charger le profil distant :', err);
+  }
+}
+
+// Sauvegarde locale (cache hors-ligne) de l'état courant.
+function persistLocalCache() {
+  localStorage.setItem('whatmovie_user_profile', JSON.stringify(userProfile));
+  localStorage.setItem('whatmovie_favs', JSON.stringify(favorites));
+  localStorage.setItem('whatmovie_watched', JSON.stringify(watchedMovies));
+}
+
+// Répercute une mise à jour partielle du profil vers Supabase, uniquement
+// si un compte est réellement connecté. Échoue silencieusement hors-ligne.
+async function pushProfileUpdate(partialFields) {
+  persistLocalCache();
+  if (!isLoggedIn || !currentUserId || typeof supabaseClient === 'undefined') return;
+  try {
+    const { error } = await supabaseClient.from('profiles').update(partialFields).eq('id', currentUserId);
+    if (error) throw error;
+  } catch (err) {
+    console.warn('Synchronisation du profil impossible (hors-ligne ?) :', err);
+  }
+}
+
+// Vérifie si un pseudo est déjà pris par un autre compte (insensible à la casse).
+// excludeUserId permet d'ignorer le compte courant lors d'une modification.
+// Passe par la vue publique "pseudos_publics" (id + pseudo uniquement) car les
+// policies RLS de la table "profiles" empêchent de lire les profils des autres.
+async function isPseudoTaken(pseudoClean, excludeUserId = null) {
+  if (typeof supabaseClient === 'undefined') return false;
+  try {
+    const { data, error } = await supabaseClient
+      .from('pseudos_publics')
+      .select('id, pseudo')
+      .ilike('pseudo', pseudoClean);
+    if (error) throw error;
+    if (!data) return false;
+    return data.some(row => row.id !== excludeUserId);
+  } catch (err) {
+    console.warn('Vérification du pseudo impossible :', err);
+    return false;
+  }
 }
 
 function renderEditProfileModalContent() {
@@ -678,9 +822,10 @@ function renderEditProfileModalContent() {
       </div>
 
       <div class="form-group">
-        <label><i class="fa-solid fa-lock"></i> Mot de passe :</label>
-        <input type="password" id="modal-password" value="${userProfile.password || ''}">
+        <label><i class="fa-solid fa-lock"></i> Nouveau mot de passe :</label>
+        <input type="password" id="modal-password" placeholder="Laisser vide pour ne pas changer">
       </div>
+      <p id="modal-profile-error" class="auth-error" style="display:none;"></p>
 
       <button class="btn-primary" id="save-modal-profile-btn" style="margin-top:10px; justify-content:center;">
         <i class="fa-solid fa-floppy-disk"></i> Enregistrer les modifications
@@ -706,6 +851,7 @@ function renderEditProfileModalContent() {
         userProfile.avatar = event.target.result;
         const prevImg = document.getElementById('modal-avatar-preview');
         if (prevImg) prevImg.src = userProfile.avatar;
+        pushProfileUpdate({ avatar: userProfile.avatar });
       };
       reader.readAsDataURL(file);
     });
@@ -713,15 +859,61 @@ function renderEditProfileModalContent() {
 
   const saveBtn = document.getElementById('save-modal-profile-btn');
   if (saveBtn) {
-    saveBtn.addEventListener('click', () => {
-      userProfile.pseudo = document.getElementById('modal-pseudo').value || 'Cinéphile';
-      userProfile.email = document.getElementById('modal-email').value || '';
-      userProfile.password = document.getElementById('modal-password').value || '';
-      localStorage.setItem('whatmovie_user_profile', JSON.stringify(userProfile));
-      syncUtilisateur(userProfile.pseudo);
-      loadUserProfile();
-      closeModal();
-      showToast("Informations personnelles mises à jour !");
+    saveBtn.addEventListener('click', async () => {
+      const errorEl = document.getElementById('modal-profile-error');
+      const showError = (msg) => { if (errorEl) { errorEl.textContent = msg; errorEl.style.display = 'block'; } };
+      if (errorEl) errorEl.style.display = 'none';
+
+      const newPseudo = (document.getElementById('modal-pseudo').value || '').trim();
+      const newEmail = (document.getElementById('modal-email').value || '').trim();
+      const newPassword = (document.getElementById('modal-password').value || '').trim();
+
+      if (!newPseudo || !newEmail) {
+        showError("Le pseudo et l'e-mail sont obligatoires.");
+        return;
+      }
+
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enregistrement...';
+
+      try {
+        // Pseudo unique : on ne vérifie que s'il a changé.
+        if (newPseudo.toLowerCase() !== (userProfile.pseudo || '').toLowerCase()) {
+          const taken = await isPseudoTaken(newPseudo.toLowerCase(), currentUserId);
+          if (taken) {
+            showError("Ce pseudo est déjà pris par un autre compte.");
+            return;
+          }
+        }
+
+        // Changement d'e-mail / mot de passe géré par Supabase Auth.
+        const authUpdates = {};
+        if (newEmail.toLowerCase() !== (userProfile.email || '').toLowerCase()) authUpdates.email = newEmail;
+        if (newPassword) authUpdates.password = newPassword;
+
+        if (Object.keys(authUpdates).length > 0 && typeof supabaseClient !== 'undefined') {
+          const { error: authError } = await supabaseClient.auth.updateUser(authUpdates);
+          if (authError) {
+            showError(authError.message || "Impossible de mettre à jour l'e-mail/le mot de passe.");
+            return;
+          }
+        }
+
+        userProfile.pseudo = newPseudo;
+        userProfile.email = newEmail;
+
+        await pushProfileUpdate({ pseudo: newPseudo, email: newEmail, avatar: userProfile.avatar });
+        loadUserProfile();
+        closeModal();
+        if (authUpdates.email) {
+          showToast("Informations mises à jour. Vérifiez votre boîte mail pour confirmer le nouvel e-mail.");
+        } else {
+          showToast("Informations personnelles mises à jour !");
+        }
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Enregistrer les modifications';
+      }
     });
   }
 
@@ -734,11 +926,17 @@ function renderEditProfileModalContent() {
   }
 }
 
+// Modale de connexion / création de compte (deux vues, un seul conteneur).
 function renderLoginModalContent() {
+  if (authModalMode === 'signup') {
+    renderSignupModalContent();
+    return;
+  }
+
   modalContainer.innerHTML = `
     <div class="modal-profile-form">
-      <h2><i class="fa-solid fa-user-lock"></i> Connexion / Changement de compte</h2>
-      <p style="font-size:0.85rem; color:var(--text-secondary); text-align:center; margin-bottom:12px;">Veuillez vous connecter pour gérer vos données personnelles.</p>
+      <h2><i class="fa-solid fa-user-lock"></i> Connexion à mon compte</h2>
+      <p style="font-size:0.85rem; color:var(--text-secondary); text-align:center; margin-bottom:12px;">Connecte-toi pour retrouver ton profil, tes favoris et tes films vus sur n'importe quel appareil.</p>
 
       <div class="form-group">
         <label><i class="fa-solid fa-envelope"></i> Adresse e-mail :</label>
@@ -749,44 +947,235 @@ function renderLoginModalContent() {
         <label><i class="fa-solid fa-lock"></i> Mot de passe :</label>
         <input type="password" id="login-password" placeholder="Mot de passe">
       </div>
+      <p id="login-error" class="auth-error" style="display:none;"></p>
 
       <button class="btn-primary" id="login-submit-btn" style="margin-top:10px; justify-content:center;">
         <i class="fa-solid fa-right-to-bracket"></i> Se connecter
+      </button>
+
+      <button type="button" class="btn-link-auth" id="go-to-signup-btn">
+        Pas encore de compte ? <strong>Créer un compte</strong>
       </button>
     </div>
   `;
 
   const loginBtn = document.getElementById('login-submit-btn');
   if (loginBtn) {
-    loginBtn.addEventListener('click', () => {
+    loginBtn.addEventListener('click', async () => {
+      const errorEl = document.getElementById('login-error');
+      const showError = (msg) => { if (errorEl) { errorEl.textContent = msg; errorEl.style.display = 'block'; } };
+      if (errorEl) errorEl.style.display = 'none';
+
       const inputEmail = document.getElementById('login-email').value.trim();
       const inputPassword = document.getElementById('login-password').value.trim();
 
       if (!inputEmail || !inputPassword) {
-        showToast("Veuillez remplir tous les champs.");
+        showError("Veuillez remplir tous les champs.");
+        return;
+      }
+      if (typeof supabaseClient === 'undefined') {
+        showError("Connexion au serveur indisponible pour le moment.");
         return;
       }
 
-      userProfile.email = inputEmail;
-      userProfile.password = inputPassword;
-      if (!userProfile.pseudo) userProfile.pseudo = inputEmail.split('@')[0];
+      loginBtn.disabled = true;
+      loginBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Connexion...';
 
-      isLoggedIn = true;
-      localStorage.setItem('whatmovie_logged_in', JSON.stringify(true));
-      localStorage.setItem('whatmovie_user_profile', JSON.stringify(userProfile));
+      try {
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
+          email: inputEmail,
+          password: inputPassword
+        });
 
-      syncUtilisateur(userProfile.pseudo);
-      loadUserProfile();
-      closeModal();
-      showToast(`Connecté en tant que ${userProfile.pseudo} !`);
+        if (error) {
+          showError(error.message === 'Invalid login credentials'
+            ? "E-mail ou mot de passe incorrect."
+            : (error.message || "Connexion impossible."));
+          return;
+        }
+
+        await applySessionAndLoadProfile(data.session);
+        loadUserProfile();
+        renderFavorites();
+        updateStats();
+        checkBadges();
+        closeModal();
+        showToast(`Connecté en tant que ${userProfile.pseudo} !`);
+      } finally {
+        loginBtn.disabled = false;
+        loginBtn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Se connecter';
+      }
+    });
+  }
+
+  const goSignupBtn = document.getElementById('go-to-signup-btn');
+  if (goSignupBtn) {
+    goSignupBtn.addEventListener('click', () => {
+      authModalMode = 'signup';
+      renderSignupModalContent();
     });
   }
 }
 
-function handleLogout() {
+function renderSignupModalContent() {
+  modalContainer.innerHTML = `
+    <div class="modal-profile-form">
+      <h2><i class="fa-solid fa-user-plus"></i> Créer mon compte</h2>
+      <p style="font-size:0.85rem; color:var(--text-secondary); text-align:center; margin-bottom:12px;">Chaque compte a un pseudo unique et ses propres données personnelles, sauvegardées et accessibles depuis n'importe quel appareil.</p>
+
+      <div class="form-group">
+        <label><i class="fa-solid fa-user"></i> Pseudo (unique) :</label>
+        <input type="text" id="signup-pseudo" placeholder="MonPseudo">
+      </div>
+
+      <div class="form-group">
+        <label><i class="fa-solid fa-envelope"></i> Adresse e-mail :</label>
+        <input type="email" id="signup-email" placeholder="votre.email@exemple.com">
+      </div>
+
+      <div class="form-group">
+        <label><i class="fa-solid fa-lock"></i> Mot de passe :</label>
+        <input type="password" id="signup-password" placeholder="6 caractères minimum">
+      </div>
+
+      <div class="form-group">
+        <label><i class="fa-solid fa-lock"></i> Confirmer le mot de passe :</label>
+        <input type="password" id="signup-password-confirm" placeholder="Retapez le mot de passe">
+      </div>
+      <p id="signup-error" class="auth-error" style="display:none;"></p>
+
+      <button class="btn-primary" id="signup-submit-btn" style="margin-top:10px; justify-content:center;">
+        <i class="fa-solid fa-user-plus"></i> Créer mon compte
+      </button>
+
+      <button type="button" class="btn-link-auth" id="go-to-login-btn">
+        Déjà un compte ? <strong>Se connecter</strong>
+      </button>
+    </div>
+  `;
+
+  const signupBtn = document.getElementById('signup-submit-btn');
+  if (signupBtn) {
+    signupBtn.addEventListener('click', async () => {
+      const errorEl = document.getElementById('signup-error');
+      const showError = (msg) => { if (errorEl) { errorEl.textContent = msg; errorEl.style.display = 'block'; } };
+      if (errorEl) errorEl.style.display = 'none';
+
+      const pseudo = document.getElementById('signup-pseudo').value.trim();
+      const email = document.getElementById('signup-email').value.trim();
+      const password = document.getElementById('signup-password').value.trim();
+      const passwordConfirm = document.getElementById('signup-password-confirm').value.trim();
+
+      if (!pseudo || !email || !password || !passwordConfirm) {
+        showError("Veuillez remplir tous les champs.");
+        return;
+      }
+      if (pseudo.length < 3) {
+        showError("Le pseudo doit contenir au moins 3 caractères.");
+        return;
+      }
+      if (password.length < 6) {
+        showError("Le mot de passe doit contenir au moins 6 caractères.");
+        return;
+      }
+      if (password !== passwordConfirm) {
+        showError("Les mots de passe ne correspondent pas.");
+        return;
+      }
+      if (typeof supabaseClient === 'undefined') {
+        showError("Connexion au serveur indisponible pour le moment.");
+        return;
+      }
+
+      signupBtn.disabled = true;
+      signupBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Création...';
+
+      try {
+        const pseudoClean = pseudo.toLowerCase();
+        const taken = await isPseudoTaken(pseudoClean);
+        if (taken) {
+          showError("Ce pseudo est déjà utilisé, choisis-en un autre.");
+          return;
+        }
+
+        const { data, error } = await supabaseClient.auth.signUp({ email, password });
+        if (error) {
+          showError(error.message || "Impossible de créer le compte.");
+          return;
+        }
+
+        const newUserId = data.user ? data.user.id : null;
+        if (newUserId) {
+          const { error: insertError } = await supabaseClient.from('profiles').insert([{
+            id: newUserId,
+            pseudo: pseudo,
+            email: email,
+            top4: [null, null, null, null],
+            favorites: [],
+            watched: []
+          }]);
+          if (insertError) {
+            const msg = insertError.code === '23505'
+              ? "Ce pseudo est déjà utilisé, choisis-en un autre."
+              : ("Compte créé mais profil non enregistré : " + insertError.message);
+            showError(msg);
+            return;
+          }
+        }
+
+        if (data.session) {
+          // Confirmation par e-mail désactivée : la session est immédiate.
+          await applySessionAndLoadProfile(data.session);
+          loadUserProfile();
+          renderFavorites();
+          updateStats();
+          checkBadges();
+          closeModal();
+          showToast(`Bienvenue ${pseudo} ! Ton compte est créé.`);
+        } else {
+          // Confirmation par e-mail activée côté Supabase : pas de session tout de suite.
+          authModalMode = 'login';
+          renderLoginModalContent();
+          showToast("Compte créé ! Vérifie ta boîte mail pour confirmer ton adresse, puis connecte-toi.");
+        }
+      } finally {
+        signupBtn.disabled = false;
+        signupBtn.innerHTML = '<i class="fa-solid fa-user-plus"></i> Créer mon compte';
+      }
+    });
+  }
+
+  const goLoginBtn = document.getElementById('go-to-login-btn');
+  if (goLoginBtn) {
+    goLoginBtn.addEventListener('click', () => {
+      authModalMode = 'login';
+      renderLoginModalContent();
+    });
+  }
+}
+
+async function handleLogout() {
+  if (typeof supabaseClient !== 'undefined') {
+    try {
+      await supabaseClient.auth.signOut();
+    } catch (err) {
+      console.warn('Erreur lors de la déconnexion :', err);
+    }
+  }
+
   isLoggedIn = false;
-  localStorage.setItem('whatmovie_logged_in', JSON.stringify(false));
+  currentUserId = null;
+  // On repart de zéro localement pour ne pas mélanger les données d'un
+  // compte avec celles d'un autre utilisateur sur le même appareil.
+  userProfile = { pseudo: 'Cinéphile', email: '', avatar: '', top4: [null, null, null, null] };
+  favorites = [];
+  watchedMovies = [];
+  persistLocalCache();
+
   loadUserProfile();
+  renderFavorites();
+  updateStats();
+  checkBadges();
   showToast("Vous vous êtes déconnecté.");
 }
 
@@ -839,7 +1228,7 @@ function renderTop4() {
           return;
         }
         userProfile.top4[i] = null;
-        localStorage.setItem('whatmovie_user_profile', JSON.stringify(userProfile));
+        pushProfileUpdate({ top4: userProfile.top4 });
         renderTop4();
         showToast("Film retiré du Top 4.");
       });
@@ -895,7 +1284,7 @@ function openTop4Picker(slotIndex) {
         title: m.title,
         poster_path: m.poster_path
       };
-      localStorage.setItem('whatmovie_user_profile', JSON.stringify(userProfile));
+      pushProfileUpdate({ top4: userProfile.top4 });
       renderTop4();
       closeModal();
       showToast(`"${m.title}" ajouté au Top 4 !`);
@@ -1095,17 +1484,30 @@ function setupExportImport() {
           if (Array.isArray(parsed.favorites) && Array.isArray(parsed.watchedMovies)) {
             favorites = parsed.favorites;
             watchedMovies = parsed.watchedMovies;
-            if (parsed.profile) userProfile = parsed.profile;
-            isLoggedIn = true;
-            localStorage.setItem('whatmovie_logged_in', JSON.stringify(true));
-            localStorage.setItem('whatmovie_favs', JSON.stringify(favorites));
-            localStorage.setItem('whatmovie_watched', JSON.stringify(watchedMovies));
-            localStorage.setItem('whatmovie_user_profile', JSON.stringify(userProfile));
+            // Le pseudo/avatar/top4 peuvent être repris de la sauvegarde, mais
+            // l'e-mail et le compte connecté ne sont plus modifiés par un simple
+            // import local : la connexion se fait uniquement via Se connecter.
+            if (parsed.profile) {
+              userProfile.pseudo = parsed.profile.pseudo || userProfile.pseudo;
+              userProfile.avatar = parsed.profile.avatar || userProfile.avatar;
+              userProfile.top4 = Array.isArray(parsed.profile.top4) ? parsed.profile.top4 : userProfile.top4;
+            }
+            if (isLoggedIn) {
+              pushProfileUpdate({
+                pseudo: userProfile.pseudo,
+                avatar: userProfile.avatar,
+                top4: userProfile.top4,
+                favorites,
+                watched: watchedMovies
+              });
+            } else {
+              persistLocalCache();
+            }
             renderFavorites();
             updateStats();
             loadUserProfile();
             checkBadges();
-            showToast("Données importées avec succès !");
+            showToast(isLoggedIn ? "Données importées et synchronisées avec votre compte !" : "Données importées localement. Connectez-vous pour les synchroniser.");
           } else {
             showToast("Fichier de sauvegarde invalide.");
           }
@@ -1381,12 +1783,16 @@ function setupAdminPanel() {
   }
 }
 
-// Affiche ou masque le bouton "Admin" selon le pseudo connecté.
-// NB : ce contrôle se fait côté navigateur, donc il cache seulement le bouton
-// aux yeux d'un visiteur normal — voir la note de sécurité fournie avec ce fichier.
+// Affiche ou masque le bouton "Admin" selon l'e-mail du compte Supabase
+// connecté. Comme cette info vient d'une vraie session (et non plus d'une
+// valeur locale au navigateur), l'accès admin fonctionne sur n'importe quel
+// appareil dès qu'on se connecte avec breyneraphael02@gmail.com.
+// NB : ce contrôle côté navigateur cache seulement le bouton/l'onglet aux
+// yeux d'un visiteur normal — la vraie protection des données se fait via
+// les policies RLS Supabase (voir la note SQL fournie avec ce projet).
 function checkAdminAccess() {
   if (!adminNavBtn) return;
-  const isAdmin = isLoggedIn && (userProfile.pseudo || '').trim().toLowerCase() === ADMIN_PSEUDO;
+  const isAdmin = isLoggedIn && (userProfile.email || '').trim().toLowerCase() === ADMIN_EMAIL;
   adminNavBtn.style.display = isAdmin ? 'flex' : 'none';
 
   // Si l'utilisateur courant vient de perdre l'accès admin mais que l'onglet
@@ -1399,7 +1805,7 @@ function checkAdminAccess() {
   }
 }
 
-// Enregistre une visite anonyme dans Supabase (table "visites").
+// Enregistre une visite dans Supabase (table "visites").
 // Échoue silencieusement si la table n'existe pas encore ou si hors-ligne.
 async function logVisite() {
   if (typeof supabaseClient === 'undefined') return;
@@ -1412,25 +1818,10 @@ async function logVisite() {
   }
 }
 
-// Crée ou met à jour la ligne de l'utilisateur dans Supabase (table "utilisateurs").
-async function syncUtilisateur(pseudo) {
-  if (typeof supabaseClient === 'undefined') return;
-  const pseudoClean = (pseudo || '').trim().toLowerCase();
-  if (!pseudoClean) return;
-  try {
-    await supabaseClient.from('utilisateurs').upsert(
-      [{ pseudo: pseudoClean }],
-      { onConflict: 'pseudo', ignoreDuplicates: false }
-    );
-  } catch (err) {
-    console.warn('Synchronisation utilisateur impossible :', err);
-  }
-}
-
 async function loadAdminPanel() {
   // Double vérification avant de charger quoi que ce soit, même si l'onglet
   // ne devrait être accessible qu'aux admins.
-  const isAdmin = isLoggedIn && (userProfile.pseudo || '').trim().toLowerCase() === ADMIN_PSEUDO;
+  const isAdmin = isLoggedIn && (userProfile.email || '').trim().toLowerCase() === ADMIN_EMAIL;
   if (!isAdmin || typeof supabaseClient === 'undefined') return;
 
   const usersStat = document.getElementById('admin-stat-users');
@@ -1450,10 +1841,10 @@ async function loadAdminPanel() {
       { data: recentUsers },
       { data: recentVisits }
     ] = await Promise.all([
-      supabaseClient.from('utilisateurs').select('*', { count: 'exact', head: true }),
+      supabaseClient.from('profiles').select('*', { count: 'exact', head: true }),
       supabaseClient.from('visites').select('*', { count: 'exact', head: true }),
       supabaseClient.from('visites').select('*', { count: 'exact', head: true }).gte('created_at', startOfToday.toISOString()),
-      supabaseClient.from('utilisateurs').select('pseudo, created_at').order('created_at', { ascending: false }).limit(15),
+      supabaseClient.from('profiles').select('pseudo, email, created_at').order('created_at', { ascending: false }).limit(15),
       supabaseClient.from('visites').select('pseudo, created_at').order('created_at', { ascending: false }).limit(15)
     ]);
 
@@ -1464,8 +1855,8 @@ async function loadAdminPanel() {
     if (usersTable) {
       if (recentUsers && recentUsers.length > 0) {
         usersTable.innerHTML = buildAdminTable(
-          ['Pseudo', 'Inscrit le'],
-          recentUsers.map(u => [u.pseudo, formatAdminDate(u.created_at)])
+          ['Pseudo', 'E-mail', 'Inscrit le'],
+          recentUsers.map(u => [u.pseudo, u.email || '—', formatAdminDate(u.created_at)])
         );
       } else {
         usersTable.innerHTML = '<p class="admin-empty">Aucun utilisateur pour le moment.</p>';
