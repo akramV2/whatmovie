@@ -1066,6 +1066,28 @@ button {
   color: var(--text-secondary);
 }
 
+.btn-link-auth {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  text-align: center;
+  cursor: pointer;
+  padding: 6px 0 0 0;
+}
+
+.btn-link-auth strong {
+  color: var(--accent-color);
+  text-decoration: underline;
+}
+
+.auth-error {
+  color: #ef4444;
+  font-size: 0.85rem;
+  text-align: center;
+  margin: -6px 0 0 0;
+}
+
 .modal-avatar-preview-wrapper {
   position: relative;
   width: 100px;
