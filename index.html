@@ -22,7 +22,7 @@
   
   <header>
     <div class="header-top">
-      <button class="btn-icon" id="settings-btn" title="Paramètres & Compte">
+      <button class="btn-icon" id="settings-btn" aria-label="Paramètres & Compte" title="Paramètres & Compte">
         <i class="fa-solid fa-gear"></i>
       </button>
       <h1>whatmovie<span class="dot">.</span></h1>
@@ -33,39 +33,19 @@
 
   <!-- Navigation par Onglets -->
   <nav class="nav-bar">
-    <button class="nav-btn active" data-target="tab-discover">
-      <i class="fa-solid fa-compass"></i>
-      <span>Découvrir</span>
-    </button>
-    <button class="nav-btn" data-target="tab-trending">
-      <i class="fa-solid fa-fire"></i>
-      <span>Tendances</span>
-    </button>
-    <button class="nav-btn" data-target="tab-favorites">
-      <i class="fa-solid fa-heart"></i>
-      <span>Favoris</span>
-    </button>
-    <button class="nav-btn" data-target="tab-profile">
-      <i class="fa-solid fa-user"></i>
-      <span>Profil</span>
-    </button>
-    <button class="nav-btn" data-target="tab-quiz">
-      <i class="fa-solid fa-gamepad"></i>
-      <span>Quiz</span>
-    </button>
-    <button class="nav-btn" data-target="tab-badges">
-      <i class="fa-solid fa-trophy"></i>
-      <span>Succès</span>
-    </button>
-    <button class="nav-btn" data-target="tab-admin" id="admin-nav-btn" style="display:none;">
-      <i class="fa-solid fa-user-shield"></i>
-      <span>Admin</span>
-    </button>
+    <button class="nav-btn active" data-target="tab-discover"><i class="fa-solid fa-compass"></i><span>Découvrir</span></button>
+    <button class="nav-btn" data-target="tab-trending"><i class="fa-solid fa-fire"></i><span>Tendances</span></button>
+    <button class="nav-btn" data-target="tab-favorites"><i class="fa-solid fa-heart"></i><span>Favoris</span></button>
+    <button class="nav-btn" data-target="tab-profile"><i class="fa-solid fa-user"></i><span>Profil</span></button>
+    <button class="nav-btn" data-target="tab-quiz"><i class="fa-solid fa-gamepad"></i><span>Quiz</span></button>
+    <button class="nav-btn" data-target="tab-badges"><i class="fa-solid fa-trophy"></i><span>Succès</span></button>
+    <button class="nav-btn" data-target="tab-admin" id="admin-nav-btn" style="display:none;"><i class="fa-solid fa-user-shield"></i><span>Admin</span></button>
   </nav>
 
   <main class="content-container">
+    
     <!-- ONGLET DÉCOUVRIR -->
-    <div id="tab-discover" class="tab-content active">
+    <section id="tab-discover" class="tab-content active">
       <div class="search-bar-container">
         <div class="search-input-wrapper">
           <input type="text" id="search-input" placeholder="Rechercher un film précis...">
@@ -75,242 +55,160 @@
       </div>
 
       <div class="controls">
-        <select id="genre-select">
-          <option value="">Tous les genres</option>
-        </select>
+        <select id="genre-select"><option value="">Tous les genres</option></select>
         <select id="era-select">
           <option value="">Toutes les époques</option>
-          <option value="2020-2026">Années 2020</option>
+          <option value="2020-2029">Années 2020</option>
           <option value="2010-2019">Années 2010</option>
           <option value="2000-2009">Années 2000</option>
-          <option value="1900-1999">Classiques (&lt; 2000)</option>
+          <option value="1990-1999">Années 1990</option>
         </select>
         <select id="duration-select">
           <option value="">Toutes les durées</option>
-          <option value="short">Moins d'1h30</option>
-          <option value="medium">1h30 à 2h</option>
-          <option value="long">Plus de 2h</option>
+          <option value="short">Court (-1h30)</option>
+          <option value="medium">Moyen (1h30 - 2h)</option>
+          <option value="long">Long (+2h)</option>
         </select>
-        <select id="provider-select" style="display:none;">
-          <option value="">Toutes plateformes</option>
-          <option value="8">Netflix</option>
-          <option value="119">Prime Video</option>
-          <option value="337">Disney+</option>
-        </select>
-        <button class="btn-primary" id="propose-btn">Proposer un film</button>
       </div>
 
-      <!-- Boutons Filtres Streaming -->
       <div class="provider-filters">
-        <button class="provider-btn" data-provider="8">
-          <img src="https://api.iconify.design/logos:netflix-icon.svg" alt="Netflix"> Netflix
-        </button>
-        <button class="provider-btn" data-provider="119">
-          <img src="https://img.icons8.com/color/48/amazon-prime-video.png" alt="Prime Video"> Prime
-        </button>
-        <button class="provider-btn" data-provider="337">
-          <img src="https://i.pinimg.com/736x/a8/cb/de/a8cbdef0355ad508eb90b6b6143a0fa1.jpg" alt="Disney+"> Disney+
-        </button>
+        <button class="provider-btn" data-provider="8">Netflix</button>
+        <button class="provider-btn" data-provider="119">Prime Video</button>
+        <button class="provider-btn" data-provider="337">Disney+</button>
       </div>
 
-      <!-- Carte du Film -->
-      <div class="movie-card-wrapper">
-        <div id="movie-card" class="glass-card">
-          <div class="poster-container" id="poster-container">
-            <img id="movie-poster" src="" alt="Affiche du film">
+      <div class="tools-bar">
+        <button class="btn-primary" id="propose-btn"><i class="fa-solid fa-shuffle"></i> Suggérer un film</button>
+        <button class="btn-action" id="next-btn"><i class="fa-solid fa-forward"></i> Déjà vu (Suivant)</button>
+      </div>
+
+      <div id="movie-card" class="glass-card">
+        <div class="poster-container" id="poster-container">
+          <img id="movie-poster" src="" alt="Affiche du film">
+        </div>
+        <div class="details-container">
+          <div class="title-row">
+            <h2 id="movie-title">Titre du film</h2>
+            <div class="stars" id="movie-rating">N/A</div>
           </div>
-          <div class="details-container">
-            <div class="title-row">
-              <h2 id="movie-title">Titre du film</h2>
-              <button id="fav-btn" class="btn-fav">
-                <i class="fa-regular fa-heart"></i> Ajouter aux favoris
-              </button>
-            </div>
-            <div id="movie-genres" class="tags"></div>
-            <p id="movie-synopsis" class="synopsis">Synopsis du film...</p>
-            
-            <div class="providers-section">
-              <span>Disponible sur :</span>
-              <div id="movie-providers" class="logos-container"></div>
-            </div>
-
-            <div class="credits-section">
-              <div id="movie-director" class="director-info"></div>
-              <div id="movie-cast" class="cast-container"></div>
-            </div>
-
-            <div class="actions-section">
-              <div class="rating-section">
-                <span>Note TMDB :</span>
-                <span id="movie-rating" class="stars">0 / 10</span>
-              </div>
-              <button class="btn-action" id="trailer-btn">Bande-annonce</button>
-              <button class="btn-primary" id="next-btn">Suivant / Déjà vu</button>
-            </div>
+          <div class="tags" id="movie-genres"></div>
+          <p class="synopsis" id="movie-synopsis"></p>
+          <p class="director" id="movie-director"></p>
+          <div class="cast-container" id="movie-cast"></div>
+          <div class="providers-section" id="movie-providers"></div>
+          <div class="actions-section">
+            <button class="btn-fav" id="fav-btn"><i class="fa-regular fa-heart"></i> Ajouter aux favoris</button>
+            <button class="btn-action" id="trailer-btn"><i class="fa-brands fa-youtube"></i> Bande-annonce</button>
           </div>
         </div>
       </div>
-    </div>
+    </section>
 
     <!-- ONGLET TENDANCES -->
-    <div id="tab-trending" class="tab-content">
+    <section id="tab-trending" class="tab-content">
       <h2>Tendances de la semaine</h2>
       <div id="trending-grid" class="favorites-grid"></div>
-    </div>
+    </section>
 
     <!-- ONGLET FAVORIS -->
-    <div id="tab-favorites" class="tab-content">
-      <h2 id="fav-count-title">Mes Favoris</h2>
+    <section id="tab-favorites" class="tab-content">
+      <h2 id="fav-count-title">Mes Favoris (0)</h2>
       <div id="favorites-grid" class="favorites-grid"></div>
-    </div>
+    </section>
 
     <!-- ONGLET PROFIL -->
-    <div id="tab-profile" class="tab-content">
-      <!-- Aperçu du Compte Actif -->
-      <div class="glass-card profile-card-wrapper" style="margin-bottom: 24px;">
+    <section id="tab-profile" class="tab-content">
+      <div class="glass-card profile-card-wrapper">
         <div class="profile-header">
           <div class="profile-avatar-container">
-            <img id="profile-avatar-display" src="https://via.placeholder.com/120?text=Avatar" alt="Photo de profil">
+            <img id="profile-avatar-display" src="https://via.placeholder.com/120" alt="Avatar">
           </div>
           <div class="profile-summary-info">
             <h2 id="profile-display-pseudo">Cinéphile</h2>
-            <p id="profile-display-email" style="color: var(--text-secondary); margin-bottom: 12px;">utilisateur@whatmovie.fr</p>
-            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-              <button class="btn-action" id="open-settings-from-profile-btn">
-                <i class="fa-solid fa-gear"></i> Modifier mes informations
-              </button>
-              <button class="btn-danger" id="logout-btn">
-                <i class="fa-solid fa-right-from-bracket"></i> Se déconnecter
-              </button>
+            <p id="profile-display-email" style="color: var(--text-secondary);">Non connecté</p>
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+              <button class="btn-action" id="open-settings-from-profile-btn">Modifier le profil</button>
+              <button class="btn-danger" id="logout-btn" style="display: none;">Déconnexion</button>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Section Top 4 Films Favoris -->
-      <div class="profile-section" style="margin-bottom: 24px;">
+        <div class="stats-container">
+          <div class="stat-card">
+            <h3>Films Vus</h3>
+            <div class="stat-value" id="stat-count">0</div>
+          </div>
+          <div class="stat-card">
+            <h3>Temps Total</h3>
+            <div class="stat-value" id="stat-time">0h</div>
+          </div>
+        </div>
+
         <div class="section-title-row">
-          <h2><i class="fa-solid fa-star" style="color: var(--accent-color);"></i> Mon Top 4 Films Favoris</h2>
-          <p style="font-size: 0.85rem; color: var(--text-secondary);">Sélectionnez vos 4 films préférés pour votre carte profil</p>
+          <h3>Top 4 Films Favoris</h3>
         </div>
         <div id="top4-grid" class="top4-grid"></div>
-      </div>
-
-      <!-- Barre d'outils et Exportation carte -->
-      <div class="tools-bar">
-        <button class="btn-primary" id="generate-profile-card-btn">
-          <i class="fa-solid fa-id-card"></i> Télécharger Ma Carte Profil (Image)
-        </button>
-        <button class="btn-action" id="export-json-btn">
-          <i class="fa-solid fa-floppy-disk"></i> Sauvegarder (JSON)
-        </button>
-        <button class="btn-action" id="import-json-btn">
-          <i class="fa-solid fa-file-import"></i> Importer (JSON)
-        </button>
-        <input type="file" id="import-file-input" accept=".json" style="display: none;">
-      </div>
-
-      <!-- Statistiques de visionnage -->
-      <div class="stats-container">
-        <div class="stat-card">
-          <h3>Films visionnés</h3>
-          <div id="stat-count" class="stat-value">0</div>
+        
+        <div class="section-title-row" style="margin-top: 24px;">
+          <h3>Répartition des Genres</h3>
         </div>
-        <div class="stat-card">
-          <h3>Temps de visionnage</h3>
-          <div id="stat-time" class="stat-value">0h</div>
-        </div>
-      </div>
-
-      <div class="stat-card" style="margin-bottom: 24px;">
-        <h3>Genres préférés</h3>
         <div id="genre-stats" class="genre-bar-container"></div>
-      </div>
 
-      <h2>Historique des films vus</h2>
-      <div id="history-grid" class="favorites-grid"></div>
-    </div>
+        <div class="tools-bar" style="margin-top: 24px; justify-content: center;">
+          <button class="btn-primary" id="generate-profile-card-btn"><i class="fa-solid fa-image"></i> Carte Profil</button>
+          <button class="btn-action" id="export-json-btn"><i class="fa-solid fa-download"></i> Sauvegarder</button>
+          <button class="btn-action" id="import-json-btn"><i class="fa-solid fa-upload"></i> Importer</button>
+          <input type="file" id="import-file-input" style="display:none;" accept=".json">
+        </div>
+      </div>
+    </section>
 
     <!-- ONGLET QUIZ -->
-    <div id="tab-quiz" class="tab-content">
+    <section id="tab-quiz" class="tab-content">
       <div class="quiz-card">
-        <h2>Devine le film</h2>
-        <p class="quiz-subtitle">Quel est ce film caché derrière l'affiche floutée ?</p>
-        <div id="quiz-score" class="quiz-score-badge">Score : 0 / 0</div>
-
-        <img id="quiz-poster" class="quiz-poster" src="" alt="Film mystère">
-
+        <h2>Devine le film !</h2>
+        <p class="quiz-subtitle">À quel film appartient cette affiche ?</p>
+        <div class="quiz-score-badge" id="quiz-score">Score : 0 / 0</div>
+        <img id="quiz-poster" class="quiz-poster" src="" alt="Affiche Mystère">
         <div id="quiz-options" class="quiz-options"></div>
         <div id="quiz-feedback" class="quiz-feedback"></div>
-
-        <button id="quiz-next-btn" class="btn-primary" style="margin-top: 16px; display: none;">Question suivante</button>
+        <button id="quiz-next-btn" class="btn-primary" style="display:none; margin-top: 16px;">Question Suivante</button>
       </div>
-    </div>
+    </section>
 
-    <!-- ONGLET BADGES / SUCCÈS -->
-    <div id="tab-badges" class="tab-content">
-      <h2>Badges & Succès</h2>
-      <p style="color: var(--text-secondary); margin-bottom: 16px;">Débloque des trophées au fur et à mesure de tes visionnages.</p>
+    <!-- ONGLET SUCCÈS (BADGES) -->
+    <section id="tab-badges" class="tab-content">
+      <h2>Succès Débloqués</h2>
       <div id="badges-grid" class="badges-grid"></div>
-    </div>
+    </section>
 
-    <!-- ONGLET ADMIN (visible uniquement pour le compte admin) -->
-    <div id="tab-admin" class="tab-content">
+    <!-- ONGLET ADMIN -->
+    <section id="tab-admin" class="tab-content">
       <div class="admin-header">
-        <h2><i class="fa-solid fa-user-shield"></i> Espace Admin</h2>
-        <button class="btn-action" id="admin-refresh-btn"><i class="fa-solid fa-rotate"></i> Actualiser</button>
+        <h2>Dashboard Administrateur</h2>
+        <button id="admin-refresh-btn" class="btn-action"><i class="fa-solid fa-rotate"></i> Actualiser</button>
       </div>
-      <p style="color: var(--text-secondary); margin-bottom: 16px;">Vue d'ensemble du site — visible uniquement par toi.</p>
-
       <div class="stats-container">
-        <div class="stat-card">
-          <h3>Utilisateurs inscrits</h3>
-          <div id="admin-stat-users" class="stat-value">–</div>
-        </div>
-        <div class="stat-card">
-          <h3>Visites totales</h3>
-          <div id="admin-stat-visits" class="stat-value">–</div>
-        </div>
-        <div class="stat-card">
-          <h3>Visites aujourd'hui</h3>
-          <div id="admin-stat-visits-today" class="stat-value">–</div>
-        </div>
+        <div class="stat-card"><h3>Utilisateurs</h3><div class="stat-value" id="admin-stat-users">0</div></div>
+        <div class="stat-card"><h3>Visites (Total)</h3><div class="stat-value" id="admin-stat-visits">0</div></div>
+        <div class="stat-card"><h3>Visites (Aujourd'hui)</h3><div class="stat-value" id="admin-stat-visits-today">0</div></div>
       </div>
+      <h3 class="admin-subtitle">Derniers Inscrits</h3>
+      <div id="admin-users-table" class="admin-table-wrapper"></div>
+      <h3 class="admin-subtitle">Dernières Visites</h3>
+      <div id="admin-visits-table" class="admin-table-wrapper"></div>
+    </section>
 
-      <h3 class="admin-subtitle">Derniers utilisateurs inscrits</h3>
-      <div id="admin-users-table" class="admin-table-wrapper">
-        <p class="admin-empty">Chargement...</p>
-      </div>
-
-      <h3 class="admin-subtitle">Dernières visites</h3>
-      <div id="admin-visits-table" class="admin-table-wrapper">
-        <p class="admin-empty">Chargement...</p>
-      </div>
-    </div>
   </main>
 
-  <!-- MODALE (Trailer / Photo / Choix Top 4 / Réglages Compte) -->
-  <div id="modal" class="modal" style="display: none;">
-    <div class="modal-content">
-      <span id="modal-close" class="modal-close">&times;</span>
+  <!-- MODAL GÉNÉRIQUE (Pour Vidéos, Affiches, ou Profil) -->
+  <div id="modal" class="modal">
+    <div class="modal-content" id="modal-content">
+      <button id="modal-close" class="modal-close">&times;</button>
       <div id="modal-content-container"></div>
     </div>
   </div>
 
-  <!-- 1. Bibliothèque Supabase -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-  <!-- 2. Configuration Supabase -->
-  <script>
-    const SUPABASE_URL = 'https://ekyaodlinyrsumxqzgzt.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_UwSN7BNMrDP4Apwy3jtMAw_gWCqO9j1';
-
-    // Initialisation du client Supabase (utilisé pour le suivi des visites,
-    // la synchro des comptes et l'espace admin — voir script.js)
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-  </script>
-
-  <!-- 3. Script principal -->
   <script src="script.js"></script>
 </body>
 </html>
