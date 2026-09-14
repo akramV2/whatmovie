@@ -3,13 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>WhatMovie — Trouve quoi regarder ce soir</title>
-  
-  <!-- Favicon & Icône d'application iOS / Web -->
-  <link rel="icon" type="image/jpeg" href="icon.jpg">
-  <link rel="shortcut icon" type="image/jpeg" href="icon.jpg">
-  <link rel="apple-touch-icon" href="icon.jpg">
-  
+  <title>WhatMovie - Trouve quoi regarder ce soir</title>
   <link rel="stylesheet" href="style.css">
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -18,7 +12,7 @@
   <!-- Animation Splash Screen d'ouverture -->
   <div id="splash-screen" class="splash-screen">
     <div class="splash-content">
-      <img src="icon.jpg" alt="WhatMovie Icon" class="splash-app-icon">
+      <i class="fa-solid fa-clapperboard splash-icon"></i>
       <h1 class="splash-title">WhatMovie<span>.</span></h1>
     </div>
   </div>
@@ -31,11 +25,8 @@
       <button class="btn-icon" id="settings-btn" title="Paramètres & Compte">
         <i class="fa-solid fa-gear"></i>
       </button>
-      <div class="brand-logo">
-        <img src="icon.jpg" alt="Logo" class="header-logo-img">
-        <h1>whatmovie<span class="dot">.</span></h1>
-      </div>
-      <button class="btn-icon" id="theme-toggle"><i class="fa-solid fa-moon"></i></button>
+      <h1>whatmovie<span class="dot">.</span></h1>
+      <button class="btn-icon" id="theme-toggle">Mode Clair</button>
     </div>
     <p>Trouve quoi regarder ce soir</p>
   </header>
@@ -77,7 +68,6 @@
     <div id="tab-discover" class="tab-content active">
       <div class="search-bar-container">
         <div class="search-input-wrapper">
-          <i class="fa-solid fa-magnifying-glass search-icon-inside"></i>
           <input type="text" id="search-input" placeholder="Rechercher un film précis...">
           <div id="search-results-dropdown" class="search-dropdown"></div>
         </div>
@@ -107,7 +97,7 @@
           <option value="119">Prime Video</option>
           <option value="337">Disney+</option>
         </select>
-        <button class="btn-primary" id="propose-btn"><i class="fa-solid fa-shuffle"></i> Proposer un film</button>
+        <button class="btn-primary" id="propose-btn">Proposer un film</button>
       </div>
 
       <!-- Boutons Filtres Streaming -->
@@ -154,8 +144,8 @@
                 <span>Note TMDB :</span>
                 <span id="movie-rating" class="stars">0 / 10</span>
               </div>
-              <button class="btn-action" id="trailer-btn"><i class="fa-solid fa-play"></i> Bande-annonce</button>
-              <button class="btn-primary" id="next-btn">Suivant / Déjà vu <i class="fa-solid fa-arrow-right"></i></button>
+              <button class="btn-action" id="trailer-btn">Bande-annonce</button>
+              <button class="btn-primary" id="next-btn">Suivant / Déjà vu</button>
             </div>
           </div>
         </div>
@@ -164,22 +154,23 @@
 
     <!-- ONGLET TENDANCES -->
     <div id="tab-trending" class="tab-content">
-      <h2><i class="fa-solid fa-fire text-accent"></i> Tendances de la semaine</h2>
+      <h2>Tendances de la semaine</h2>
       <div id="trending-grid" class="favorites-grid"></div>
     </div>
 
     <!-- ONGLET FAVORIS -->
     <div id="tab-favorites" class="tab-content">
-      <h2 id="fav-count-title"><i class="fa-solid fa-heart text-accent"></i> Mes Favoris</h2>
+      <h2 id="fav-count-title">Mes Favoris</h2>
       <div id="favorites-grid" class="favorites-grid"></div>
     </div>
 
     <!-- ONGLET PROFIL -->
     <div id="tab-profile" class="tab-content">
+      <!-- Aperçu du Compte Actif -->
       <div class="glass-card profile-card-wrapper" style="margin-bottom: 24px;">
         <div class="profile-header">
           <div class="profile-avatar-container">
-            <img id="profile-avatar-display" src="icon.jpg" alt="Photo de profil">
+            <img id="profile-avatar-display" src="https://via.placeholder.com/120?text=Avatar" alt="Photo de profil">
           </div>
           <div class="profile-summary-info">
             <h2 id="profile-display-pseudo">Cinéphile</h2>
@@ -196,6 +187,7 @@
         </div>
       </div>
 
+      <!-- Section Top 4 Films Favoris -->
       <div class="profile-section" style="margin-bottom: 24px;">
         <div class="section-title-row">
           <h2><i class="fa-solid fa-star" style="color: var(--accent-color);"></i> Mon Top 4 Films Favoris</h2>
@@ -204,6 +196,7 @@
         <div id="top4-grid" class="top4-grid"></div>
       </div>
 
+      <!-- Barre d'outils et Exportation carte -->
       <div class="tools-bar">
         <button class="btn-primary" id="generate-profile-card-btn">
           <i class="fa-solid fa-id-card"></i> Télécharger Ma Carte Profil (Image)
@@ -217,6 +210,7 @@
         <input type="file" id="import-file-input" accept=".json" style="display: none;">
       </div>
 
+      <!-- Statistiques de visionnage -->
       <div class="stats-container">
         <div class="stat-card">
           <h3>Films visionnés</h3>
@@ -260,7 +254,7 @@
       <div id="badges-grid" class="badges-grid"></div>
     </div>
 
-    <!-- ONGLET ADMIN -->
+    <!-- ONGLET ADMIN (visible uniquement pour le compte admin) -->
     <div id="tab-admin" class="tab-content">
       <div class="admin-header">
         <h2><i class="fa-solid fa-user-shield"></i> Espace Admin</h2>
@@ -295,7 +289,7 @@
     </div>
   </main>
 
-  <!-- MODALE POPUP -->
+  <!-- MODALE (Trailer / Photo / Choix Top 4 / Réglages Compte) -->
   <div id="modal" class="modal" style="display: none;">
     <div class="modal-content">
       <span id="modal-close" class="modal-close">&times;</span>
@@ -303,12 +297,20 @@
     </div>
   </div>
 
+  <!-- 1. Bibliothèque Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- 2. Configuration Supabase -->
   <script>
     const SUPABASE_URL = 'https://ekyaodlinyrsumxqzgzt.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_UwSN7BNMrDP4Apwy3jtMAw_gWCqO9j1';
+
+    // Initialisation du client Supabase (utilisé pour le suivi des visites,
+    // la synchro des comptes et l'espace admin — voir script.js)
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   </script>
+
+  <!-- 3. Script principal -->
   <script src="script.js"></script>
 </body>
 </html>
